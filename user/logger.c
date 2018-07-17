@@ -5,198 +5,195 @@
  *      Author: Jan
  */
 #include <c_types.h>
-#include <ip_addr.h>
+#include <mem.h>
+#include <osapi.h>
 #include <spi_flash.h>
 #include "user_config.h"
+#include "setting.h"
 #include "logger.h"
-#include "tijd.h"
+#include "x_time.h"
 
-#define LOGGER_AANTAL_SECTOR	4
+#define LOG_VERSION			100
 
 struct log_entry{
-	long sTijd;
-	uint8 sAktie;
+	long sTime;
+	uint8 sAction;
 	uint32 sIp;
 };
 
 struct log{
-	uint8 sAantal;
-	uint8 sHuidig;
-	uint8 sTotaal;
-	struct log_entry sEntry[LOGGER_AANTAL_ENTRIES];
+	uint8 sHash;
+	uint8 sVersion;
+	uint8 sNumber;
+	uint8 sCurrent;
+	struct log_entry sEntry[LOG_NUMBER_ENTRIES];
 };
 
-struct log mLog;
+static uint8 mLogNumber[] = {LOG_INIT, LOG_RESET, LOG_RESET_READERR, LOG_SET, LOG_GET_SWITCH, LOG_GET_SETTING, LOG_GET_ERROR, LOG_PUT_SWITCH_ON, LOG_PUT_SWITCH_OFF, LOG_PUT_SWITCH_FLIP, LOG_PUT_SWITCH_ERROR, LOG_PUT_BUTTON_ON, LOG_PUT_BUTTON_OFF, LOG_PUT_BUTTON_ERROR, LOG_PUT_SETTING, LOG_PUT_ERROR, LOG_VERB_ERROR};
+static char* mLogText[] = {"Log Init", "Log Reset", "Log Read error", "Log Set", "GET Switch", "GET Setting", "GET Error", "PUT Switch On", "PUT Switch Off", "PUT Switch Flip", "PUT Switch Error", "PUT Button On", "PUT Button Off", "PUT Button Error", "PUT Setting", "PUT Error", "VERB Error"};
+static char mDef[3];
 
-LOCAL bool mLogAktief = false;
+static struct log *mLog = NULL;
 
-uint8 ICACHE_FLASH_ATTR sLeesLog(){
-	SpiFlashOpResult lResult;
+static uint8 mLogLevel = 0;
 
-    lResult = spi_flash_read(LOGGER_SECTOR * (4*1024), (uint32 *)&mLog, sizeof(struct log));
-    if (lResult == SPI_FLASH_RESULT_OK){
-    	return RESULT_OK;
-    } else {
-    	mLogAktief = false;
-    	mLog.sAantal = 0;
-    	return RESULT_FOUT;
-    }
+uint8 ICACHE_FLASH_ATTR xLogNumber(){
+	return mLog->sNumber;
 }
 
-uint8 ICACHE_FLASH_ATTR sSchrijfLog(){
-	SpiFlashOpResult lResult;
-
-	lResult = spi_flash_erase_sector(LOGGER_SECTOR);
-    if (lResult == SPI_FLASH_RESULT_OK){
-    	lResult = spi_flash_write(LOGGER_SECTOR * (4*1024), (uint32 *)&mLog, sizeof(struct log));
-    }
-    if (lResult == SPI_FLASH_RESULT_OK){
-    	return RESULT_OK;
-    } else {
-    	mLogAktief = false;
-    	mLog.sAantal = 0;
-    	return RESULT_FOUT;
-    }
+uint8 ICACHE_FLASH_ATTR xLogCurrent(){
+	return mLog->sCurrent;
 }
 
-uint8 ICACHE_FLASH_ATTR sTestLog(){
-	uint8 lTeller;
-	uint8 lTotaal;
-	uint8 lLogGoed;
+uint8 ICACHE_FLASH_ATTR xLogAction(uint8 pEntry){
+	return mLog->sEntry[pEntry].sAction;
+}
 
-	lLogGoed = RESULT_FOUT;
-	if (mLog.sAantal == LOGGER_AANTAL_ENTRIES){
-		if (mLog.sHuidig < LOGGER_AANTAL_ENTRIES){
-			lTotaal = 0;
-			for (lTeller = 0; lTeller < LOGGER_AANTAL_ENTRIES; lTeller++){
-				lTotaal += mLog.sEntry[lTeller].sAktie;
-			}
-			if (lTotaal == mLog.sTotaal){
-				lLogGoed = RESULT_OK;
-			}
+const char * ICACHE_FLASH_ATTR xLogActionText(uint8 pEntry){
+	int lCount;
+	char * lResult = NULL;
+
+	for (lCount = 0; lCount < (sizeof(mLogNumber)/sizeof(uint8)); lCount++){
+		if (mLogNumber[lCount] == mLog->sEntry[pEntry].sAction){
+			lResult = mLogText[lCount];
+			break;
 		}
 	}
-
-	return lLogGoed;
-}
-
-uint8 sLogEntry(uint8 pAktie, uint32 pIp){
-	uint8 lTeller;
-	uint8 lTotaal;
-	uint8 lResult;
-
-	mLog.sEntry[mLog.sHuidig].sAktie = pAktie;
-	mLog.sEntry[mLog.sHuidig].sTijd = xTijdNu();
-	mLog.sEntry[mLog.sHuidig].sIp = pIp;
-	mLog.sHuidig++;
-	if (mLog.sHuidig >= mLog.sAantal){
-		mLog.sHuidig = 0;
+	if (lResult == NULL){
+		os_sprintf(mDef, "%d", mLog->sEntry[pEntry].sAction);
+		lResult = mDef;
 	}
-
-	lTotaal = 0;
-	for (lTeller = 0; lTeller < mLog.sAantal; lTeller++){
-		lTotaal += mLog.sEntry[lTeller].sAktie;
-	}
-	mLog.sTotaal = lTotaal;
-
-	lResult = sSchrijfLog();
-
 	return lResult;
 }
 
-uint8 ICACHE_FLASH_ATTR sInitLog(){
-	uint8 lTeller;
-	uint8 lResult;
-
-	mLog.sAantal = LOGGER_AANTAL_ENTRIES;
-	mLog.sHuidig = 0;
-	for (lTeller = 0; lTeller < LOGGER_AANTAL_ENTRIES; lTeller++){
-		mLog.sEntry[lTeller].sAktie = LOGGER_AKTIE_NULL;
-		mLog.sEntry[lTeller].sTijd = 0;
-		mLog.sEntry[lTeller].sIp = 0;
-	}
-
-	lResult = sLogEntry(LOGGER_AKTIE_RESET, 0);
-
-	return lResult;
+uint32 ICACHE_FLASH_ATTR xLogTime(uint8 pEntry){
+	return mLog->sEntry[pEntry].sTime;
 }
 
-uint8 ICACHE_FLASH_ATTR xLogAantal(){
-	if (mLogAktief){
-		return mLog.sAantal;
-	} else {
-		return 0;
-	}
+uint32 ICACHE_FLASH_ATTR xLogIp(uint8 pEntry){
+	return mLog->sEntry[pEntry].sIp;
 }
 
-uint8 ICACHE_FLASH_ATTR xLogHuidig(){
-	if (mLogAktief){
-		return mLog.sHuidig;
-	} else {
-		return 0;
-	}
-}
+static uint8 ICACHE_FLASH_ATTR sLogHash(){
+	uint8 lCount;
+	uint8 lHash;
+	char * lPos;
 
-uint8 ICACHE_FLASH_ATTR xLogAktie(uint8 pPos){
-	if (mLogAktief){
-		if (pPos > LOGGER_AANTAL_ENTRIES){
-			return LOGGER_AKTIE_FOUT;
-		} else {
-			return mLog.sEntry[pPos].sAktie;
+	lHash = 0;
+	if (mLog != NULL){
+		lPos = (char *)mLog + 1;
+		for (lCount = 0; lCount < sizeof(struct log) - 1; lCount++){
+			lHash += *lPos;
 		}
-	} else {
-		return LOGGER_AKTIE_NULL;
 	}
+
+	return lHash;
 }
 
-long ICACHE_FLASH_ATTR xLogTijd(uint8 pPos){
-	if (mLogAktief){
-		if (pPos > LOGGER_AANTAL_ENTRIES){
-			return -1;
-		} else {
-			return mLog.sEntry[pPos].sTijd;
+static void ICACHE_FLASH_ATTR sLogWrite(){
+	SpiFlashOpResult lResult;
+
+	mLog->sHash = sLogHash();
+	lResult = spi_flash_erase_sector(LOG_SECTOR);
+    if (lResult == SPI_FLASH_RESULT_OK){
+    	lResult = spi_flash_write(LOG_SECTOR * (4*1024), (uint32 *)mLog, sizeof(struct log));
+    }
+    if (lResult != SPI_FLASH_RESULT_OK){
+    	mLogLevel = 1;
+    }
+}
+
+void xLogEntry(uint8 pAction, uint32 pIp){
+	if (mLogLevel > 0){
+		mLog->sEntry[mLog->sCurrent].sAction = pAction;
+		mLog->sEntry[mLog->sCurrent].sTime = xTimeNow();
+		mLog->sEntry[mLog->sCurrent].sIp = pIp;
+		mLog->sCurrent++;
+		if (mLog->sCurrent >= mLog->sNumber){
+			mLog->sCurrent = 0;
 		}
-	} else {
-		return 0;
-	}
-}
-
-uint32 ICACHE_FLASH_ATTR xLogIp(uint8 pPos){
-	if (mLogAktief){
-		if (pPos > LOGGER_AANTAL_ENTRIES){
-			return 0;
-		} else {
-			return mLog.sEntry[pPos].sIp;
+		if (mLogLevel > 1){
+			sLogWrite();
 		}
-	} else {
-		return 0;
 	}
 }
 
-void xLogEntry(uint8 pAktie, uint32 pIp){
-	if (mLogAktief){
-		sLogEntry(pAktie, pIp);
+static void ICACHE_FLASH_ATTR sLogInit(){
+    os_bzero(mLog, sizeof(mLog));
+    mLog->sVersion = LOG_VERSION;
+    mLog->sNumber = LOG_NUMBER_ENTRIES;
+    mLog->sCurrent = 0;
+}
+
+static void ICACHE_FLASH_ATTR sLogRead(){
+	SpiFlashOpResult lResult;
+
+    lResult = spi_flash_read(LOG_SECTOR * (4*1024), (uint32 *)mLog, sizeof(struct log));
+    if (lResult == SPI_FLASH_RESULT_OK){
+    	if (mLog->sVersion == LOG_VERSION && mLog->sNumber == LOG_NUMBER_ENTRIES && mLog->sHash == sLogHash()){
+    		if (mLog->sCurrent >= mLog->sNumber){
+    			mLog->sCurrent = 0;
+    		}
+    		xLogEntry(LOG_INIT, mLogLevel);
+    	} else {
+        	sLogInit();
+    		xLogEntry(LOG_RESET, mLogLevel);
+    	}
+    } else {
+    	mLogLevel = 1;
+    	sLogInit();
+		xLogEntry(LOG_RESET_READERR, mLogLevel);
+    }
+}
+
+void ICACHE_FLASH_ATTR xLogSetLevel(){
+	uint8 lLogLevel;
+
+	lLogLevel = xSettingLogLevel();
+	if (mLogLevel != lLogLevel){
+		if (lLogLevel <= 2){
+			if (mLogLevel == 0){
+				mLog = (struct log *)os_zalloc(sizeof (struct log));
+				if (mLog == NULL){
+					mLogLevel = 0;
+				} else {
+					mLogLevel = lLogLevel;
+					sLogInit();
+				}
+			} else {
+				mLogLevel = lLogLevel;
+				if (lLogLevel == 0){
+					os_free(mLog);
+					mLog = NULL;
+				}
+			}
+		}
 	}
+	xLogEntry(LOG_SET, mLogLevel);
 }
 
 void ICACHE_FLASH_ATTR xLogInit(){
-	uint8 lResult;
+	uint8 lLogLevel;
 
-#ifdef PLATFORM_DEBUG
-	ets_uart_printf("Grootte log: %d\r\n", sizeof(struct log));
-#endif
+	lLogLevel = xSettingLogLevel();
+	if (lLogLevel > 2){
+		mLogLevel = 0;
+	} else {
+		mLogLevel = lLogLevel;
+	}
 
-	lResult = sLeesLog();
-	if (lResult == RESULT_OK){
-		lResult = sTestLog();
-		if (lResult == RESULT_OK){
-			mLogAktief = true;
+	if (mLogLevel > 0){
+		mLog = (struct log *)os_zalloc(sizeof (struct log));
+		if (mLog == NULL){
+			mLogLevel = 0;
 		} else {
-			lResult = sInitLog();
-			if (lResult == RESULT_OK){
-				mLogAktief = true;
+			if (mLogLevel > 1){
+				sLogRead();
+			} else {
+				sLogInit();
+	    		xLogEntry(LOG_INIT, mLogLevel);
 			}
 		}
 	}
-	xLogEntry(LOGGER_AKTIE_INIT, 0);
 }
+

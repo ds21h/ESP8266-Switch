@@ -8,7 +8,7 @@
 #ifndef USER_UTIL_H_
 #define USER_UTIL_H_
 
-int xStrnCmpX(const char *pStr1, const char *pStr2, int pLengte);
+int xStrnCmpX(const char *pStr1, const char *pStr2, int pLength);
 int xStrCmpX(const char *pStr1, const char *pStr2);
 char xLCase(char pIn);
 

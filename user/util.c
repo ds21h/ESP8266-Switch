@@ -9,42 +9,42 @@
 #include "user_config.h"
 #include "util.h"
 
-int ICACHE_FLASH_ATTR xStrnCmpX(const char *pStr1, const char *pStr2, int pLengte){
+int ICACHE_FLASH_ATTR xStrnCmpX(const char *pStr1, const char *pStr2, int pLength){
 	char lChar1;
 	char lChar2;
-	int lTeller;
-	int lVerschil;
+	int lCount;
+	int lDifference;
 
-	for (lTeller = 0; lTeller < pLengte; lTeller++){
-		lChar1 = xLCase(pStr1[lTeller]);
-		lChar2 = xLCase(pStr2[lTeller]);
+	for (lCount = 0; lCount < pLength; lCount++){
+		lChar1 = xLCase(pStr1[lCount]);
+		lChar2 = xLCase(pStr2[lCount]);
 		if (lChar1 == 0){
 			if (lChar2 == 0){
-				lVerschil = 0;
+				lDifference = 0;
 			} else {
-				lVerschil = -1;
+				lDifference = -1;
 			}
 			break;
 		} else {
 			if (lChar2 == 0){
-				lVerschil = 1;
+				lDifference = 1;
 				break;
 			} else {
-				lVerschil = lChar1 - lChar2;
-				if (lVerschil != 0){
+				lDifference = lChar1 - lChar2;
+				if (lDifference != 0){
 					break;
 				}
 			}
 		}
 	}
-	return lVerschil;
+	return lDifference;
 }
 
 int ICACHE_FLASH_ATTR xStrCmpX(const char *pStr1, const char *pStr2){
 	int lLen1;
 	int lLen2;
 	int lMax;
-	int lVerschil;
+	int lDifference;
 
 	lLen1 = os_strlen(pStr1);
 	lLen2 = os_strlen(pStr2);
@@ -53,17 +53,17 @@ int ICACHE_FLASH_ATTR xStrCmpX(const char *pStr1, const char *pStr2){
 	} else {
 		lMax = lLen1;
 	}
-	lVerschil = xStrnCmpX(pStr1, pStr2, lMax);
-	return lVerschil;
+	lDifference = xStrnCmpX(pStr1, pStr2, lMax);
+	return lDifference;
 }
 
 char ICACHE_FLASH_ATTR xLCase(char pIn){
-	char lUit;
+	char lOut;
 
 	if (pIn >= 65 && pIn <= 90){
-		lUit = pIn + 32;
+		lOut = pIn + 32;
 	} else {
-		lUit = pIn;
+		lOut = pIn;
 	}
-	return lUit;
+	return lOut;
 }

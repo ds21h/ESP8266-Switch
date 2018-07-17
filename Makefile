@@ -2,7 +2,6 @@
 include	../../settings.mk
 
 # Individual project settings (Optional)
-
 #BOOT		= new
 #APP		= 1
 #SPI_SPEED	= 40
