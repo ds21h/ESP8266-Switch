@@ -15,6 +15,8 @@
 
 #define HTTP_PORT	80
 
+bool gHttpActive;
+
 static struct HttpConnectionSlot mHttp_Conns[HTTP_MAX_CONN];
 
 
@@ -387,6 +389,10 @@ void ICACHE_FLASH_ATTR cbHttpConnect(void *pArg) {
 	ets_uart_printf("TCP/IP connection made\r\n");
 	#endif
 
+	if (!gHttpActive){	// When systemupgrade is scheduled no new connections are accepted
+		system_os_post(0, EventDisconnect, pArg);
+		return;
+	}
 	lConn=(struct espconn *)pArg;
 	lSlot = sHttpFindFreeSlot();
 	if (lSlot == NULL) {
@@ -421,6 +427,7 @@ void ICACHE_FLASH_ATTR eHttpInit() {
 	static esp_tcp lTcp;
 	unsigned int lCount;
 
+	gHttpActive = true;
 	for (lCount=0; lCount < HTTP_MAX_CONN; lCount++) {
 		mHttp_Conns[lCount].sFree = true;
 		mHttp_Conns[lCount].sConn = NULL;

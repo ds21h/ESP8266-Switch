@@ -101,6 +101,17 @@ static void ICACHE_FLASH_ATTR tcbMainDeferredStart(void *arg){
 		mDeferredStart = false;
 		ets_uart_printf("SDK version:%s\r\n", system_get_sdk_version());
 		ets_uart_printf("Flash chip id: %x\r\n", spi_flash_get_id());
+		switch (system_upgrade_userbin_check()){
+		case UPGRADE_FW_BIN1:
+			ets_uart_printf("Image 1\r\n");
+			break;
+		case UPGRADE_FW_BIN2:
+			ets_uart_printf("Image 2\r\n");
+			break;
+		default:
+			ets_uart_printf("Unknown image\r\n");
+			break;
+		}
 		ets_uart_printf("Start configuration\r\n");
 		system_os_post(0, EventStartSetup, 0);
 	}
@@ -277,8 +288,8 @@ void ICACHE_FLASH_ATTR eMainSetup()
 
 void ICACHE_FLASH_ATTR user_init()
 {
-#ifdef PLATFORM_DEBUG
 	uart_init(BIT_RATE_115200, BIT_RATE_115200);
+#ifdef PLATFORM_DEBUG
 	mConnected = false;
 	mStartCounter = 0;
 	mDeferredStart = true;

@@ -25,6 +25,7 @@ SegmentSwitch,
 SegmentLog,
 SegmentSetting,
 SegmentButton,
+SegmentUpgrade,
 SegmentEnd,
 SegmentData,
 SegmentError,
@@ -37,6 +38,7 @@ UriLog,
 UriLogPar,
 UriSetting,
 UriButton,
+UriUpgrade,
 UriFavicon,
 UriError
 };
@@ -55,6 +57,7 @@ enum language {
 static int mLang = LangUK;
 
 static int mStart;
+static char mVersion[12];
 
 static int ICACHE_FLASH_ATTR cbMessageFillReply(struct jsontree_context *pCtx);
 static int ICACHE_FLASH_ATTR cbMessageFillSetting(struct jsontree_context *pCtx);
@@ -781,6 +784,40 @@ static void ICACHE_FLASH_ATTR sMessageSetSetting(char * pMessage){
 	os_free(lBuffer);
 }
 
+static bool ICACHE_FLASH_ATTR sMessageFindVersion(char **pUriPtr){
+	char *lUriPtr;
+	char *lStart;
+	bool lEnd;
+	int lLength;
+	bool lOK;
+
+	lUriPtr = *pUriPtr;
+	lUriPtr++;
+	if (xStrnCmpX(lUriPtr, "version=", 8) == 0){
+		lUriPtr += 8;
+		lStart = lUriPtr;
+		lEnd = false;
+		lLength = 0;
+		do {
+			if (*lUriPtr == '\0'){
+				lEnd = true;
+			} else {
+				lLength++;
+				lUriPtr++;
+			}
+		} while (!lEnd);
+		if (lLength < 6 || lLength > 12){
+			lOK = false;
+		} else {
+			os_strcpy(mVersion, lStart);
+			lOK = true;
+		}
+	} else {
+		lOK = false;
+	}
+	return lOK;
+}
+
 static int ICACHE_FLASH_ATTR sMessageFindStart(char **pUriPtr){
 	char *lUriPtr;
 	int lStart;
@@ -857,6 +894,12 @@ static enum segment ICACHE_FLASH_ATTR sMessageUriSegment(char **pUriPtr){
 				lResult = SegmentSwitch;
 			}
 		}
+		if (lLength == 7){
+			if (xStrnCmpX(lStart, "upgrade", lLength) == 0){
+				mLang = LangNL;
+				lResult = SegmentUpgrade;
+			}
+		}
 		if (lLength >= 7){
 			if (xStrnCmpX(lStart, "favicon", 7) == 0){
 				lResult = SegmentFavicon;
@@ -881,46 +924,62 @@ static enum uri ICACHE_FLASH_ATTR sMessageTestUriSwitch(char **pUriPtr){
 	enum uri lUriType;
 
 	lSegmentType = sMessageUriSegment(pUriPtr);
-	if (lSegmentType == SegmentEnd){
+	switch (lSegmentType){
+	case SegmentEnd:
 		lUriType = UriBasis;
-	} else {
-		if (lSegmentType == SegmentLog){
-			lSegmentType = sMessageUriSegment(pUriPtr);
-			if (lSegmentType == SegmentEnd){
-				lUriType = UriLog;
-			} else {
-				if (lSegmentType == SegmentData){
-					mStart = sMessageFindStart(pUriPtr);
-					if (mStart < 0){
-						lUriType = UriError;
-					} else {
-						lUriType = UriLogPar;
-					}
-				} else {
-					lUriType = UriError;
-				}
-			}
+		break;
+	case SegmentLog:
+		lSegmentType = sMessageUriSegment(pUriPtr);
+		if (lSegmentType == SegmentEnd){
+			lUriType = UriLog;
 		} else {
-			if (lSegmentType == SegmentSetting){
-				lSegmentType = sMessageUriSegment(pUriPtr);
-				if (lSegmentType == SegmentEnd){
-					lUriType = UriSetting;
-				} else {
+			if (lSegmentType == SegmentData){
+				mStart = sMessageFindStart(pUriPtr);
+				if (mStart < 0){
 					lUriType = UriError;
+				} else {
+					lUriType = UriLogPar;
 				}
 			} else {
-				if (lSegmentType == SegmentButton){
-					lSegmentType = sMessageUriSegment(pUriPtr);
-					if (lSegmentType == SegmentEnd){
-						lUriType = UriButton;
-					} else {
-						lUriType = UriError;
-					}
-				} else {
-					lUriType = UriError;
-				}
+				lUriType = UriError;
 			}
 		}
+		break;
+	case SegmentSetting:
+		lSegmentType = sMessageUriSegment(pUriPtr);
+		if (lSegmentType == SegmentEnd){
+			lUriType = UriSetting;
+		} else {
+			lUriType = UriError;
+		}
+		break;
+	case SegmentButton:
+		lSegmentType = sMessageUriSegment(pUriPtr);
+		if (lSegmentType == SegmentEnd){
+			lUriType = UriButton;
+		} else {
+			lUriType = UriError;
+		}
+		break;
+	case SegmentUpgrade:
+		lSegmentType = sMessageUriSegment(pUriPtr);
+		if (lSegmentType == SegmentEnd){
+			lUriType = UriError;
+		} else {
+			if (lSegmentType == SegmentData){
+				if (sMessageFindVersion(pUriPtr)){
+					lUriType = UriUpgrade;
+				} else {
+					lUriType = UriError;
+				}
+			} else {
+				lUriType = UriError;
+			}
+		}
+		break;
+	default:
+		lUriType = UriError;
+		break;
 	}
 	return lUriType;
 }
@@ -959,7 +1018,9 @@ void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot){
 	enum uri lUriType;
 	enum action lAction;
 	int lStart;
+	bool lUpgrade;
 
+	lUpgrade = false;
 	if (os_strcmp(pSlot->sVerb, "GET") == 0){
 		lUriType = sMessageTestUri(pSlot->sUri);
 		switch (lUriType){
@@ -1000,6 +1061,14 @@ void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot){
 					sMessageLogReplyUK(mStart, pSlot->sAnswer);
 				}
 				pSlot->sProcessResult = HTTP_OK;
+				break;
+			case UriUpgrade:
+				mProcessOk = true;
+				os_sprintf(mText, "Upgrade requested to version %s", mVersion);
+				sMessageErrorReplyUK(pSlot->sAnswer);
+				pSlot->sProcessResult = HTTP_OK;
+				xLogEntry(LOG_UPGRADE, pSlot->sRemoteIp.addr);
+				lUpgrade = true;
 				break;
 			default:
 				mProcessOk = false;
@@ -1129,5 +1198,8 @@ void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot){
 		}
 	}
 	system_os_post(0, EventMessageProcessed, pSlot);
+	if (lUpgrade){
+		system_os_post(0, EventStartUpgrade, mVersion);
+	}
 }
 

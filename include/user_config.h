@@ -30,25 +30,48 @@
 //***version 2.0 17-07-2018
 //***			- Changed to event driven application
 //***			- API both in English and in Dutch. If URI starts with 'Switch' the English API is used. If it starts with 'Schakelaar' the Dutch one is used.
+//***version 2.1.0 24-07-2018
+//***			- Changed to FOTA
+//***			- Added API to request upgrade
+//***			- Added upgrade function (ota_upgrade.c)
 //***************************************************************
-#define VERSION			"2.0"
+#define VERSION			"v2.1.0"
 //***************************************************************
-//***	Memory
+//***	Memory non-Fota
 //***
 //***	0x00000: eagle.flash.bin (max 64 KB)
-//***				contains boot sector and the user program that is loaded in memeory on startup (including variables)
+//***				contains boot sector and the user program that is loaded in memory on startup (including variables)
 //***	0x10000: eagle.irom0text.bin
 //***				contains the read-only part of the user program
 //***	in between: free for use (attention, Flash memory, to be used in segments of 4 KB!)
-//***	0xFC000: system params (ao RF calibration Sector - output of user_rf_cal_sector_set)
+//***	0xFB000: system params (ao RF calibration Sector - output of user_rf_cal_sector_set)
+//***
+//***************************************************************
+//***	Memory Fota
+//***
+//***	0x00000: Boot (4K)
+//***				contains bootloader and logic to determine which image to use
+//***	0x01000: Bin1 (max 488K, together with User data 1)
+//***				contains Image 1 of the program
+//***	connecting: User data 1 (max 488K, together with Bin1)
+//***				Free to use data
+//***	0x7B000: User data (max 24K)
+//***				Free to use
+//***	0x81000: Bin2 (max 488K, together with User data 2)
+//***				contains Image 2 of the program
+//***	connecting: User data 2 (max 488K, together with Bin2)
+//***				Free to use data
+//***	0xFB000: RF Cal sector (4K)
+//***	0xFC000: RF Param sector (4K)
+//***	0xFD000: System parameters (12K)
 //***
 //***************************************************************
 //***	Used sectors in flash-memory
-#define LEN_SSID		32
-#define LEN_PASSWORD	64
-
 #define LOG_SECTOR		0x7C
 #define SETTING_SECTOR	0x7D
+
+#define LEN_SSID		32
+#define LEN_PASSWORD	64
 
 //***	If define in debug mode
 #define PLATFORM_DEBUG	1

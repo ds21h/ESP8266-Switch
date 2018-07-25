@@ -13,7 +13,8 @@ enum eventtask{
 	EventStartHttp,
 	EventDisconnect,
 	EventProcessMessage,
-	EventMessageProcessed
+	EventMessageProcessed,
+	EventStartUpgrade
 };
 
 

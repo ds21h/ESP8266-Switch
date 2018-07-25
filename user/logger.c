@@ -29,8 +29,8 @@ struct log{
 	struct log_entry sEntry[LOG_NUMBER_ENTRIES];
 };
 
-static uint8 mLogNumber[] = {LOG_INIT, LOG_RESET, LOG_RESET_READERR, LOG_SET, LOG_GET_SWITCH, LOG_GET_SETTING, LOG_GET_ERROR, LOG_PUT_SWITCH_ON, LOG_PUT_SWITCH_OFF, LOG_PUT_SWITCH_FLIP, LOG_PUT_SWITCH_ERROR, LOG_PUT_BUTTON_ON, LOG_PUT_BUTTON_OFF, LOG_PUT_BUTTON_ERROR, LOG_PUT_SETTING, LOG_PUT_ERROR, LOG_VERB_ERROR};
-static char* mLogText[] = {"Log Init", "Log Reset", "Log Read error", "Log Set", "GET Switch", "GET Setting", "GET Error", "PUT Switch On", "PUT Switch Off", "PUT Switch Flip", "PUT Switch Error", "PUT Button On", "PUT Button Off", "PUT Button Error", "PUT Setting", "PUT Error", "VERB Error"};
+static uint8 mLogNumber[] = {LOG_INIT, LOG_RESET, LOG_RESET_READERR, LOG_SET, LOG_GET_SWITCH, LOG_GET_SETTING, LOG_GET_ERROR, LOG_PUT_SWITCH_ON, LOG_PUT_SWITCH_OFF, LOG_PUT_SWITCH_FLIP, LOG_PUT_SWITCH_ERROR, LOG_PUT_BUTTON_ON, LOG_PUT_BUTTON_OFF, LOG_PUT_BUTTON_ERROR, LOG_PUT_SETTING, LOG_PUT_ERROR, LOG_VERB_ERROR, LOG_UPGRADE};
+static char* mLogText[] = {"Log Init", "Log Reset", "Log Read error", "Log Set", "GET Switch", "GET Setting", "GET Error", "PUT Switch On", "PUT Switch Off", "PUT Switch Flip", "PUT Switch Error", "PUT Button On", "PUT Button Off", "PUT Button Error", "PUT Setting", "PUT Error", "VERB Error", "Upgrade"};
 static char mDef[3];
 
 static struct log *mLog = NULL;

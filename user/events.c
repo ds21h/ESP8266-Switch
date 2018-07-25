@@ -6,6 +6,7 @@
  */
 #include <osapi.h>
 #include "events.h"
+#include "user_config.h"
 
 #define LEN_EVENTQUEUE0	2
 os_event_t gEventQueue0[LEN_EVENTQUEUE0];
@@ -31,6 +32,9 @@ static void ICACHE_FLASH_ATTR cbEventQueue0(os_event_t *pEvent) {
     	break;
     case EventMessageProcessed:
 		eHttpMessageProcessed(pEvent->par);
+    	break;
+    case EventStartUpgrade:
+		eOtaUpgrade(pEvent->par);
     	break;
     }
 }
