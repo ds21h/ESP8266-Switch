@@ -7,26 +7,26 @@
 #include <ets_sys.h>
 #include <osapi.h>
 #include "user_config.h"
-#include <user_interface.h>
+#include "user_interface.h"
 #include <os_type.h>
 #include <gpio.h>
 #include "driver/uart.h"
 #include <espconn.h>
-#include "http_verbinding.h"
-#include "drukknop.h"
+#include "events.h"
+#include "http_connection.h"
+#include "switch.h"
+#include "setting.h"
 #include "logger.h"
-#include "tijd.h"
 
+static void ICACHE_FLASH_ATTR sMainSetupWifiApMode();
 
-void ICACHE_FLASH_ATTR setup_wifi(void);
-void ICACHE_FLASH_ATTR setup_wifi_st_mode(void);
+static os_timer_t tmIpTimeOut;
 
-static bool mStart = true;
-static bool mVerbonden;
 #ifdef PLATFORM_DEBUG
-	static os_timer_t mTeller_Timer;
-	static bool mAanloop;
-	static int mVolgnr;
+static bool mConnected;
+static os_timer_t tmStartCounter;
+static bool mDeferredStart;
+static int mStartCounter;
 #endif
 
 /******************************************************************************
@@ -42,7 +42,7 @@ static bool mVerbonden;
  * Parameters   : none
  * Returns      : rf cal sector
 *******************************************************************************/
-uint32 ICACHE_FLASH_ATTR user_rf_cal_sector_set(void)
+uint32 ICACHE_FLASH_ATTR user_rf_cal_sector_set()
 {
     enum flash_size_map size_map = system_get_flash_size_map();
     uint32 rf_cal_sec = 0;
@@ -74,185 +74,226 @@ uint32 ICACHE_FLASH_ATTR user_rf_cal_sector_set(void)
     return rf_cal_sec;
 }
 
-void ICACHE_FLASH_ATTR user_rf_pre_init(void)
+void ICACHE_FLASH_ATTR user_rf_pre_init()
 {
 }
 
 #ifdef PLATFORM_DEBUG
-LOCAL void ICACHE_FLASH_ATTR aftellen(void *arg){
-	LOCAL int lTest;
-	uint32_t lFlashChipId;
-	uint8_t lFabr;
-	uint8_t lType;
-	uint8_t lFormaat;
+static void ICACHE_FLASH_ATTR tcbMainDeferredStart(void *arg){
+	static int lTest;
 
-	  mVolgnr++;
-	if (mAanloop){
-		ets_uart_printf("Wakker worden....%d\r\n", mVolgnr);
+	  mStartCounter++;
+	if (mDeferredStart){
+		ets_uart_printf("Counting....%d\r\n", mStartCounter);
 	} else {
-		if (mVerbonden){
-			lTest = (mVolgnr/10)*10;
-			if (mVolgnr == lTest){
-				ets_uart_printf("Doortellen....%d\r\n", mVolgnr);
+		if (mConnected){
+			lTest = (mStartCounter/10)*10;
+			if (mStartCounter == lTest){
+				ets_uart_printf("Still counting....%d\r\n", mStartCounter);
 			}
 		} else {
-			ets_uart_printf("Doortellen....%d\r\n", mVolgnr);
+			ets_uart_printf("Still counting....%d\r\n", mStartCounter);
 		}
 
 	}
 
-	if (mVolgnr == 10){
-		mAanloop = false;
-		ets_uart_printf("SDK versie:%s\r\n", system_get_sdk_version());
-		lFlashChipId = spi_flash_get_id();
-		lFabr = lFlashChipId & 0xff;
-		lType = (lFlashChipId >> 8) & 0xff;
-		lFormaat = (lFlashChipId >> 16) & 0xff;
-		ets_uart_printf("Flash chip id: %x, fabr: %x\r\n", lFlashChipId, lFabr);
-		xLogInit();
-		ets_uart_printf("Start configuratie\r\n");
-		setup_wifi();
+	if (mStartCounter == 10){
+		mDeferredStart = false;
+		ets_uart_printf("SDK version:%s\r\n", system_get_sdk_version());
+		ets_uart_printf("Flash chip id: %x\r\n", spi_flash_get_id());
+		switch (system_upgrade_userbin_check()){
+		case UPGRADE_FW_BIN1:
+			ets_uart_printf("Image 1\r\n");
+			break;
+		case UPGRADE_FW_BIN2:
+			ets_uart_printf("Image 2\r\n");
+			break;
+		default:
+			ets_uart_printf("Unknown image\r\n");
+			break;
+		}
+		ets_uart_printf("Start configuration\r\n");
+		system_os_post(0, EventStartSetup, 0);
 	}
 }
 #endif
 
-static void ICACHE_FLASH_ATTR systeem_klaar(void){
+static void ICACHE_FLASH_ATTR tcbIpTimeOut(void *arg){
+	int lCount;
+
+	wifi_station_set_reconnect_policy(false);
+	lCount = xSettingConnectFail();
 	#ifdef PLATFORM_DEBUG
-	os_timer_disarm(&mTeller_Timer);
-	os_timer_setfn(&mTeller_Timer, (os_timer_func_t *)aftellen, (void *)0);
-	os_timer_arm(&mTeller_Timer, 1000, 1);
-	#else
-	setup_wifi();
+	ets_uart_printf("Time-out connect Station: %d!\r\n", lCount);
 	#endif
 }
 
-void ICACHE_FLASH_ATTR setup_wifi(void)
-{
-	setup_wifi_st_mode();
-	wifi_station_connect();
-	wifi_station_dhcpc_start();
-	if(wifi_station_get_auto_connect() == 1)
-		wifi_station_set_auto_connect(0);
-}
+void cbMainWifiEvent(System_Event_t *pEvent) {
+	static struct ip_info lIpConfig;
+//	static struct ip_addr lAddress;
 
-void ICACHE_FLASH_ATTR setup_wifi_st_mode(void)
-{
-	struct station_config stconfig;
-
-	wifi_set_opmode(STATION_MODE);
-	wifi_station_disconnect();
-	wifi_station_dhcpc_stop();
-	if(wifi_station_get_config(&stconfig))
-	{
-		os_memset(stconfig.ssid, 0, sizeof(stconfig.ssid));
-		os_memset(stconfig.password, 0, sizeof(stconfig.password));
-		os_sprintf(stconfig.ssid, "%s", WIFI_SSID);
-		os_sprintf(stconfig.password, "%s", WIFI_PASSWORD);
-		stconfig.bssid_set = 0;
-		if(!wifi_station_set_config(&stconfig))
-		{
-			#ifdef PLATFORM_DEBUG
-			ets_uart_printf("Configuratie mislukt!\r\n");
-			#endif
-		}
-	}
-	if(wifi_get_phy_mode() != PHY_MODE_11N)
-		wifi_set_phy_mode(PHY_MODE_11N);
-	#ifdef PLATFORM_DEBUG
-	ets_uart_printf("Configuratie gelukt!\r\n");
-	#endif
-}
-
-void eventHandler(System_Event_t *event) {
-	static struct ip_info ipconfig;
-	static struct ip_addr ladres;
-
-	switch(event->event) {
+	switch(pEvent->event) {
 		case EVENT_STAMODE_CONNECTED:
-			xLogEntry(LOGGER_WIFI_VERBONDEN, 0);
 			#ifdef PLATFORM_DEBUG
-			ets_uart_printf("Wifi verbonden\r\n");
+			ets_uart_printf("Wifi connected\r\n");
 			#endif
 			break;
 		case EVENT_STAMODE_DISCONNECTED:
-			xLogEntry(LOGGER_WIFI_VERBROKEN, 0);
 			#ifdef PLATFORM_DEBUG
-			ets_uart_printf("Wifi verbinding verbroken\r\n");
+			ets_uart_printf("Wifi disconnected\r\n");
+			mConnected = false;
 			#endif
-			mVerbonden = false;
 			break;
 		case EVENT_STAMODE_AUTHMODE_CHANGE:
 			#ifdef PLATFORM_DEBUG
-			ets_uart_printf("Event: Station mode - Authenticatie veranderd\r\n");
+			ets_uart_printf("Event: EVENT_STAMODE_AUTHMODE_CHANGE\r\n");
 			#endif
 			break;
 		case EVENT_STAMODE_GOT_IP:
-			wifi_get_ip_info(STATION_IF, &ipconfig);
-			xLogEntry(LOGGER_IP_ONTVANGEN, ipconfig.ip.addr);
+			wifi_get_ip_info(STATION_IF, &lIpConfig);
+			os_timer_disarm(&tmIpTimeOut);
 			#ifdef PLATFORM_DEBUG
-			ladres.addr = ipconfig.ip.addr;
-			ets_uart_printf("IP adres gekregen: " IPSTR "\r\n", IP2STR(&ladres));
+//			lAddress.addr = lIpConfig.ip.addr;
+			ets_uart_printf("IP address acquired: " IPSTR "\r\n", IP2STR(&lIpConfig.ip));
+			mConnected = true;
 			#endif
-			mVerbonden = true;
-			if (mStart){
-				mStart = false;
-				xTijdInit();
-			}
-			http_init();
-			break;
-		case EVENT_STAMODE_DHCP_TIMEOUT:
-			#ifdef PLATFORM_DEBUG
-			ets_uart_printf("Event: EVENT_DHCP_TIMEOUT\r\n");
-			#endif
+			xTimeInit();
+			xSettingConnectOk();
+			system_os_post(0, EventStartHttp, 0);
 			break;
 		case EVENT_SOFTAPMODE_STACONNECTED:
 			#ifdef PLATFORM_DEBUG
-			ets_uart_printf("Event: EVENT_SOFTAPMODE_STACONNECTED\r\n");
+			ets_uart_printf("station: " MACSTR "join, AID = %d\r\n",
+					MAC2STR(pEvent->event_info.sta_connected.mac),
+					pEvent->event_info.sta_connected.aid);
 			#endif
 			break;
 		case EVENT_SOFTAPMODE_STADISCONNECTED:
 			#ifdef PLATFORM_DEBUG
-			ets_uart_printf("Event: EVENT_SOFTAPMODE_STADISCONNECTED\r\n");
+			ets_uart_printf("station: " MACSTR "leave, AID = %d\r\n",
+			MAC2STR(pEvent->event_info.sta_disconnected.mac),
+			pEvent->event_info.sta_disconnected.aid);
 			#endif
 			break;
 		case EVENT_SOFTAPMODE_PROBEREQRECVED:
-			#ifdef PLATFORM_DEBUG
-			ets_uart_printf("Event: EVENT_SOFTAPMODE_PROBEREQRECVED\r\n");
-			#endif
+//			#ifdef PLATFORM_DEBUG
+//			ets_uart_printf("Event: EVENT_SOFTAPMODE_PROBEREQRECVED, MAC: " MACSTR "\r\n", MAC2STR(pEvent->event_info.ap_probereqrecved.mac));
+//			#endif
 			break;
-		case EVENT_OPMODE_CHANGED:  //Eclipse vindt dit fout. Compileert en werkt wel correct.
+		case EVENT_OPMODE_CHANGED:
 			#ifdef PLATFORM_DEBUG
-			ets_uart_printf("Event: Operation mode veranderd\r\n");
+			ets_uart_printf("Event: EVENT_OPMODE_CHANGED\r\n");
 			#endif
 			break;
 		default:
 			#ifdef PLATFORM_DEBUG
-			ets_uart_printf("Onverwacht event: %d\n", event->event);
+			ets_uart_printf("Unexpected event: %d\n", pEvent->event);
 			#endif
 			break;
 	}
 }
 
-void ICACHE_FLASH_ATTR user_init(void)
-{
-#ifdef METMAC
-	char lMac[6] = {MAC_ADRES};
-	wifi_set_macaddr(STATION_IF, lMac);
-#endif
-	gpio_init();
-#ifdef PLATFORM_DEBUG
-	uart_init(BIT_RATE_115200, BIT_RATE_115200);
-#endif
-	xSchakelInit();
-	xDrukknopInit();
-#ifndef PLATFORM_DEBUG
-	xLogInit();
-#endif
-	mVerbonden = false;
+void ICACHE_FLASH_ATTR cbMainSystemReady(){
 	#ifdef PLATFORM_DEBUG
-		mVolgnr = 0;
-		mAanloop = true;
+	os_timer_disarm(&tmStartCounter);
+	os_timer_setfn(&tmStartCounter, (os_timer_func_t *)tcbMainDeferredStart, (void *)0);
+	os_timer_arm(&tmStartCounter, 1000, 1);
+	#else
+	system_os_post(0, EventStartSetup, 0);
 	#endif
-	wifi_set_event_handler_cb(eventHandler);
-	system_init_done_cb(&systeem_klaar);
+}
+
+static void ICACHE_FLASH_ATTR sMainSetupWifiStMode(){
+	struct station_config stconfig;
+
+	wifi_set_macaddr(STATION_IF, (char *)xSettingMacAddr());
+	wifi_set_opmode(STATION_MODE);
+	wifi_station_set_reconnect_policy(true);
+	wifi_station_disconnect();
+	wifi_station_dhcpc_stop();
+	if(wifi_station_get_config(&stconfig))
+	{
+		os_memcpy(stconfig.ssid, xSettingSsId(), sizeof(stconfig.ssid));
+		os_memcpy(stconfig.password, xSettingPassword(), sizeof(stconfig.password));
+		stconfig.bssid_set = 0;
+		if(wifi_station_set_config(&stconfig))
+		{
+			#ifdef PLATFORM_DEBUG
+			ets_uart_printf("Configuration finished: Station!\r\n");
+			#endif
+			wifi_station_dhcpc_start();
+			wifi_station_connect();
+			os_timer_disarm(&tmIpTimeOut);
+			os_timer_setfn(&tmIpTimeOut, (os_timer_func_t *)tcbIpTimeOut, (void *)0);
+			os_timer_arm(&tmIpTimeOut, 30000, 0);
+		} else {
+			#ifdef PLATFORM_DEBUG
+			ets_uart_printf("Configuration failed: Station config set!\r\n");
+			#endif
+		}
+	}
+}
+
+static void ICACHE_FLASH_ATTR sMainSetupWifiApMode()
+{
+	struct softap_config lApConfig;
+	char lMac[6];
+
+	wifi_set_opmode(SOFTAP_MODE);
+	if(wifi_softap_get_config(&lApConfig)){
+		os_memset(lApConfig.ssid, 0, sizeof(lApConfig.ssid));
+		os_memset(lApConfig.password, 0, sizeof(lApConfig.password));
+		wifi_get_macaddr(SOFTAP_IF, lMac);
+		os_sprintf(lApConfig.ssid, "EspSw_%02x%02x%02x%02x%02x%02x", MAC2STR(lMac));
+		os_sprintf(lApConfig.password, "%s", "EspSwSetup");
+		lApConfig.ssid_len = 0;
+		lApConfig.authmode = AUTH_WPA_WPA2_PSK;
+		if(wifi_softap_set_config(&lApConfig)){
+			#ifdef PLATFORM_DEBUG
+			ets_uart_printf("Configuration finished: SoftAP!\r\n");
+			mConnected = true;
+			#endif
+			system_os_post(0, EventStartHttp, 0);
+		} else {
+			#ifdef PLATFORM_DEBUG
+			ets_uart_printf("Configuration failed: Softap config set!\r\n");
+			#endif
+		}
+	} else {
+		#ifdef PLATFORM_DEBUG
+		ets_uart_printf("Configuration failed: Softap config get!\r\n");
+		#endif
+	}
+}
+
+void ICACHE_FLASH_ATTR eMainSetup()
+{
+	xSettingInit();
+	xLogInit();
+	xSwitchInit();
+	xButtonInit();
+	if(wifi_station_get_auto_connect() == 1){
+		wifi_station_set_auto_connect(0);
+	}
+	if(wifi_get_phy_mode() != PHY_MODE_11N){
+		wifi_set_phy_mode(PHY_MODE_11N);
+	}
+	wifi_set_event_handler_cb(cbMainWifiEvent);
+	if (os_strlen(xSettingSsId()) > 0) {
+		sMainSetupWifiStMode();
+	} else {
+		sMainSetupWifiApMode();
+	}
+}
+
+void ICACHE_FLASH_ATTR user_init()
+{
+	uart_init(BIT_RATE_115200, BIT_RATE_115200);
+#ifdef PLATFORM_DEBUG
+	mConnected = false;
+	mStartCounter = 0;
+	mDeferredStart = true;
+#endif
+	xEventInit();
+	system_init_done_cb(&cbMainSystemReady);
 }

@@ -1,11 +1,6 @@
 #ifndef __USER_CONFIG_H__
 #define __USER_CONFIG_H__
 
-//***************************************************************
-//***
-//***  Let op: Zet juiste context hieronder!
-//***
-//***************************************************************
 //***
 //*** Versie 1.0 11-07-2017
 //***			Eerste stabiele versie op PCB versie 1.0
@@ -27,74 +22,58 @@
 //***			Gecompileerd met SDK 2.1.0
 //***versie 1.2.1 08-10-2017
 //***			Gebruikte SDK toegevoegd aan antwoord
-//***
+//***version 2.0.dev 12-01-2018
+//***			- Translate to English
+//***			- Move Network and Switch data to dynamic memory
+//***			- Start as an Access Point when Network data is not up-to-date
+//***			- Create API for maintenance of Network and Switch data
+//***version 2.0 17-07-2018
+//***			- Changed to event driven application
+//***			- API both in English and in Dutch. If URI starts with 'Switch' the English API is used. If it starts with 'Schakelaar' the Dutch one is used.
+//***version 2.1.0 24-07-2018
+//***			- Changed to FOTA
+//***			- Added API to request upgrade
+//***			- Added upgrade function (ota_upgrade.c)
 //***************************************************************
-#define VERSIE			"1.2.1"
+#define VERSION			"v2.1.0"
 //***************************************************************
-//***	Memory
+//***	Memory non-Fota
 //***
 //***	0x00000: eagle.flash.bin (max 64 KB)
-//***				bevat boot sector en het user programma dat in het geheugen geladen wordt (dus ook de variabelen)
+//***				contains boot sector and the user program that is loaded in memory on startup (including variables)
 //***	0x10000: eagle.irom0text.bin
-//***				bevat het read-only deel van het user programma
-//***	tussenliggend: vrij voor programmagebruik (let op Flash memory, te gebruiken in segmenten van 4 KB!)
-//***	0xFC000: system params (oa RF calibration Sector - output van user_rf_cal_sector_set)
+//***				contains the read-only part of the user program
+//***	in between: free for use (attention, Flash memory, to be used in segments of 4 KB!)
+//***	0xFB000: system params (ao RF calibration Sector - output of user_rf_cal_sector_set)
 //***
 //***************************************************************
-//***	Te gebuiken sectoren in flash-memory
-#define LOGGER_SECTOR	0x7C
-#define DRUKKNOP_SECTOR	0x7D
+//***	Memory Fota
+//***
+//***	0x00000: Boot (4K)
+//***				contains bootloader and logic to determine which image to use
+//***	0x01000: Bin1 (max 488K, together with User data 1)
+//***				contains Image 1 of the program
+//***	connecting: User data 1 (max 488K, together with Bin1)
+//***				Free to use data
+//***	0x7B000: User data (max 24K)
+//***				Free to use
+//***	0x81000: Bin2 (max 488K, together with User data 2)
+//***				contains Image 2 of the program
+//***	connecting: User data 2 (max 488K, together with Bin2)
+//***				Free to use data
+//***	0xFB000: RF Cal sector (4K)
+//***	0xFC000: RF Param sector (4K)
+//***	0xFD000: System parameters (12K)
+//***
+//***************************************************************
+//***	Used sectors in flash-memory
+#define LOG_SECTOR		0x7C
+#define SETTING_SECTOR	0x7D
 
-//***	Algemeen te gebruiken resultaat-codes
-#define RESULT_OK				0
-#define RESULT_FOUT				9
+#define LEN_SSID		32
+#define LEN_PASSWORD	64
 
-//***	Als gedefinieerd in debug mode
-//#define PLATFORM_DEBUG	1
-
-#define METMAC
-#define SCHAKELAAR05
-
-//***  Netwerk definitie
-#define WIFI_SSID		"Your SSID"
-#define WIFI_PASSWORD	"Your password"
-#define TCPIP_PORT 		80
-
-//***  Definitie schakelaars
-#ifdef SCHAKELAAR01
-#define SCHAKEL_NAAM	"Lamp"
-#define SCHAKEL_OMS		"Staande schemerlamp"
-#define MAC_ADRES		0x00, 0xff, 0xff, 0xff, 0x00, 0x01
-#endif
-#ifdef SCHAKELAAR02
-#define SCHAKEL_NAAM	"Cocktails"
-#define SCHAKEL_OMS		"Neon Cocktails"
-#define MAC_ADRES		0x00, 0xff, 0xff, 0xff, 0x00, 0x02
-#endif
-#ifdef SCHAKELAAR03
-#define SCHAKEL_NAAM	"RockOla"
-#define SCHAKEL_OMS		"RockOla 1422"
-#define MAC_ADRES		0x00, 0xff, 0xff, 0xff, 0x00, 0x03
-#endif
-#ifdef SCHAKELAAR04
-#define SCHAKEL_NAAM	"Pennen"
-#define SCHAKEL_OMS		"Pennenkast"
-#define MAC_ADRES		0x00, 0xff, 0xff, 0xff, 0x00, 0x04
-#endif
-#ifdef SCHAKELAAR05
-#define SCHAKEL_NAAM	"Ami"
-#define SCHAKEL_OMS		"AMI H"
-#define MAC_ADRES		0x00, 0xff, 0xff, 0xff, 0x00, 0x05
-#endif
-#ifdef SCHAKELAAR06
-#define SCHAKEL_NAAM	"CrissCross"
-#define SCHAKEL_OMS		"Gokkast CrissCross"
-#define MAC_ADRES		0x00, 0xff, 0xff, 0xff, 0x00, 0x06
-#endif
-#ifdef SCHAKELAAR07
-#define SCHAKEL_NAAM	"GrijpKast"
-#define SCHAKEL_OMS		"Grijpkast Fortune Crane"
-#define MAC_ADRES		0x00, 0xff, 0xff, 0xff, 0x00, 0x07
-#endif
+//***	If define in debug mode
+#define PLATFORM_DEBUG	1
 
 #endif

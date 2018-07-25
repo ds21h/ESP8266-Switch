@@ -2,9 +2,8 @@
 include	../../settings.mk
 
 # Individual project settings (Optional)
-
-#BOOT		= new
-#APP		= 1
+BOOT		= new
+APP		= 2
 #SPI_SPEED	= 40
 # 							Let op!
 #							SPI_MODE = QIO (default) voor AI Cloud
@@ -17,7 +16,7 @@ ESPPORT		= COM5
 
 # Basic project settings
 MODULES	= driver user
-LIBS	= c gcc hal phy pp net80211 lwip wpa main crypto json
+LIBS	= c gcc hal phy pp net80211 lwip wpa main crypto json upgrade
 
 # Root includes
 include	../../common_nonos.mk
