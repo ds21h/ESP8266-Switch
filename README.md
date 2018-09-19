@@ -7,12 +7,14 @@ If you like this/hate this/have any comments/have any questions/just want to cha
 
 Version 2.2.1 19-09-2018:
 - xSwitchInit moved from eMainSetup to cbMainSystemReady in order to bypass the startup delay: The switch is ON on start and xSwitchInit switches it off!
+
 Version 2.2.0 13-08-2018 (never published):
 - MAC is optional in setting. Note: Setting the MAC requires a double restart of the module before the MAC is used.
 - Server IP and Port are now part of Settings.
 - In Settings the version is relocated to the front. This to make upgrade possible. This version is not compatible with previous version.
 - Version checks are included for upgrade. Normally only higher version will be accepted.
 - Force option is included in upgrade to load non-accepted version.
+
 Version 2.1:
   - Software is in the English language
   - Services now exist in both English and Dutch. Usage is controled by te first part ot the URI. If this reads 'Schakelaar' then the Dutch version is used. If this reads 'Switch' the English version is used. Please use the English version. In the future the Dutch version will be removed.
