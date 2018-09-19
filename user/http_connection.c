@@ -110,9 +110,7 @@ static void ICACHE_FLASH_ATTR sHttpReply(struct HttpConnectionSlot *pSlot) {
 
 	pSlot->sState = HTTP_STATE_REPLY;
 	espconn_sent(pSlot->sConn, pSlot->sBuffer, pSlot->sBufferLen);
-	#ifdef PLATFORM_DEBUG
 	ets_uart_printf("Reply sent\r\n%s", pSlot->sBuffer);
-	#endif
 }
 
 static void ICACHE_FLASH_ATTR sHttpErrorReply(struct HttpConnectionSlot *pSlot, char *pMessage){
@@ -276,9 +274,7 @@ void ICACHE_FLASH_ATTR cbHttpRecv(void *pArg, char *pData, unsigned short pLen) 
 	struct HttpConnectionSlot *lSlot;
 	uint16_t lCopyLen;
 
-	#ifdef PLATFORM_DEBUG
 	ets_uart_printf("received with length %d: %s\r\n", pLen, pData);
-	#endif
 
 	lConn = (struct espconn *)pArg;
 	lSlot = sHttpFindSlot(lConn);
@@ -324,9 +320,7 @@ void ICACHE_FLASH_ATTR cbHttpSent(void *pArg) {
 	struct espconn *lConn;
 	struct HttpConnectionSlot *lSlot;
 
-	#ifdef PLATFORM_DEBUG
 	ets_uart_printf("Reply sent\r\n");
-	#endif
 
 	lConn = (struct espconn *)pArg;
 	lSlot = sHttpFindSlot(lConn);
@@ -342,16 +336,12 @@ void ICACHE_FLASH_ATTR cbHttpReconnect(void *arg) {
 	//arg cannot be use. Connection no longer exists!
 	int lCount;
 
-	#ifdef PLATFORM_DEBUG
 	ets_uart_printf("Lost connection, clean up\r\n");
-	#endif
 
 	for (lCount = 0; lCount < HTTP_MAX_CONN; lCount++) {
 		if (!mHttp_Conns[lCount].sFree){
 			if (mHttp_Conns[lCount].sConn->state == ESPCONN_NONE || mHttp_Conns[lCount].sConn->state == ESPCONN_CLOSE){
-				#ifdef PLATFORM_DEBUG
 				ets_uart_printf("Connection %d freed\r\n", lCount);
-				#endif
 				mHttp_Conns[lCount].sFree = true;
 				mHttp_Conns[lCount].sConn = NULL;
 			}
@@ -363,16 +353,12 @@ void ICACHE_FLASH_ATTR cbHttpDisconnect(void *pArg) {
 	//arg cannot be used. Connection no longer exists!
 	int lCount;
 
-	#ifdef PLATFORM_DEBUG
 	ets_uart_printf("Lost connection, clean up\r\n");
-	#endif
 
 	for (lCount = 0; lCount < HTTP_MAX_CONN; lCount++) {
 		if (!mHttp_Conns[lCount].sFree){
 			if (mHttp_Conns[lCount].sConn->state == ESPCONN_NONE || mHttp_Conns[lCount].sConn->state == ESPCONN_CLOSE){
-				#ifdef PLATFORM_DEBUG
 				ets_uart_printf("Connection %d freed\r\n", lCount);
-				#endif
 				mHttp_Conns[lCount].sFree = true;
 				mHttp_Conns[lCount].sConn = NULL;
 			}
@@ -385,9 +371,7 @@ void ICACHE_FLASH_ATTR cbHttpConnect(void *pArg) {
 	struct HttpConnectionSlot *lSlot;
 	struct ip_addr lIp;
 
-	#ifdef PLATFORM_DEBUG
 	ets_uart_printf("TCP/IP connection made\r\n");
-	#endif
 
 	if (!gHttpActive){	// When systemupgrade is scheduled no new connections are accepted
 		system_os_post(0, EventDisconnect, pArg);
@@ -406,7 +390,6 @@ void ICACHE_FLASH_ATTR cbHttpConnect(void *pArg) {
 	lSlot->sConn = lConn;
 	lSlot->sBufferLen = 0;
 	lSlot->sState = HTTP_STATE_INIT;
-//	os_strcpy(lSlot->sVerb, "");
 	lSlot->sVerb[0] = '\0';
 	lSlot->sUri[0] = '\0';
 	lSlot->sAnswer[0] = '\0';
@@ -443,7 +426,5 @@ void ICACHE_FLASH_ATTR eHttpInit() {
 	espconn_regist_connectcb(&lConn, cbHttpConnect);
 	espconn_accept(&lConn);
 
-	#ifdef PLATFORM_DEBUG
 	ets_uart_printf("TCP/IP initialized\r\n");
-	#endif
 }

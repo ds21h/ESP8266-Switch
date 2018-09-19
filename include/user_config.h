@@ -34,8 +34,16 @@
 //***			- Changed to FOTA
 //***			- Added API to request upgrade
 //***			- Added upgrade function (ota_upgrade.c)
+//***version 2.2.0 13-08-2018
+//***			- MAC is optional in setting. Note: Setting the MAC requires a double restart of the module before the MAC is used.
+//***			- Server IP and Port are now part of Settings.
+//***			- In Settings the version is relocated to the front. This to make upgrade possible. This version is not compatible with previous version.
+//***			- Version checks are included for upgrade. Normally only higher version will be accepted.
+//***			- Force option is included in upgrade to load non-accepted version.
+//***version 2.2.1 19-09-2018
+//***			- xSwitchInit moved from eMainSetup to cbMainSystemReady in order to bypass the startup delay: The switch is ON on start and xSwitchInit switches it off!
 //***************************************************************
-#define VERSION			"v2.1.0"
+#define VERSION			"v2.2.1"
 //***************************************************************
 //***	Memory non-Fota
 //***
@@ -73,7 +81,5 @@
 #define LEN_SSID		32
 #define LEN_PASSWORD	64
 
-//***	If define in debug mode
-#define PLATFORM_DEBUG	1
-
+#define STARTPAUSE	10
 #endif

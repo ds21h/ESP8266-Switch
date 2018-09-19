@@ -22,12 +22,10 @@ static void ICACHE_FLASH_ATTR sMainSetupWifiApMode();
 
 static os_timer_t tmIpTimeOut;
 
-#ifdef PLATFORM_DEBUG
 static bool mConnected;
 static os_timer_t tmStartCounter;
 static bool mDeferredStart;
 static int mStartCounter;
-#endif
 
 /******************************************************************************
  * FunctionName : user_rf_cal_sector_set
@@ -78,35 +76,34 @@ void ICACHE_FLASH_ATTR user_rf_pre_init()
 {
 }
 
-#ifdef PLATFORM_DEBUG
 static void ICACHE_FLASH_ATTR tcbMainDeferredStart(void *arg){
 	static int lTest;
 
-	  mStartCounter++;
+	mStartCounter++;
 	if (mDeferredStart){
 		ets_uart_printf("Counting....%d\r\n", mStartCounter);
 	} else {
 		if (mConnected){
 			lTest = (mStartCounter/10)*10;
 			if (mStartCounter == lTest){
-				ets_uart_printf("Still counting....%d\r\n", mStartCounter);
+				ets_uart_printf("Counting....%d\r\n", mStartCounter);
 			}
 		} else {
-			ets_uart_printf("Still counting....%d\r\n", mStartCounter);
+			ets_uart_printf("Counting....%d\r\n", mStartCounter);
 		}
 
 	}
 
-	if (mStartCounter == 10){
+	if (mStartCounter == STARTPAUSE){
 		mDeferredStart = false;
 		ets_uart_printf("SDK version:%s\r\n", system_get_sdk_version());
 		ets_uart_printf("Flash chip id: %x\r\n", spi_flash_get_id());
 		switch (system_upgrade_userbin_check()){
 		case UPGRADE_FW_BIN1:
-			ets_uart_printf("Image 1\r\n");
+			ets_uart_printf("Image %d\r\n", 1);
 			break;
 		case UPGRADE_FW_BIN2:
-			ets_uart_printf("Image 2\r\n");
+			ets_uart_printf("Image %d\r\n", 2);
 			break;
 		default:
 			ets_uart_printf("Unknown image\r\n");
@@ -116,120 +113,97 @@ static void ICACHE_FLASH_ATTR tcbMainDeferredStart(void *arg){
 		system_os_post(0, EventStartSetup, 0);
 	}
 }
-#endif
 
 static void ICACHE_FLASH_ATTR tcbIpTimeOut(void *arg){
 	int lCount;
 
 	wifi_station_set_reconnect_policy(false);
 	lCount = xSettingConnectFail();
-	#ifdef PLATFORM_DEBUG
 	ets_uart_printf("Time-out connect Station: %d!\r\n", lCount);
-	#endif
 }
 
 void cbMainWifiEvent(System_Event_t *pEvent) {
 	static struct ip_info lIpConfig;
-//	static struct ip_addr lAddress;
 
 	switch(pEvent->event) {
 		case EVENT_STAMODE_CONNECTED:
-			#ifdef PLATFORM_DEBUG
 			ets_uart_printf("Wifi connected\r\n");
-			#endif
 			break;
 		case EVENT_STAMODE_DISCONNECTED:
-			#ifdef PLATFORM_DEBUG
 			ets_uart_printf("Wifi disconnected\r\n");
 			mConnected = false;
-			#endif
 			break;
 		case EVENT_STAMODE_AUTHMODE_CHANGE:
-			#ifdef PLATFORM_DEBUG
-			ets_uart_printf("Event: EVENT_STAMODE_AUTHMODE_CHANGE\r\n");
-			#endif
+//			ets_uart_printf("Event: EVENT_STAMODE_AUTHMODE_CHANGE\r\n");
 			break;
 		case EVENT_STAMODE_GOT_IP:
 			wifi_get_ip_info(STATION_IF, &lIpConfig);
 			os_timer_disarm(&tmIpTimeOut);
-			#ifdef PLATFORM_DEBUG
-//			lAddress.addr = lIpConfig.ip.addr;
 			ets_uart_printf("IP address acquired: " IPSTR "\r\n", IP2STR(&lIpConfig.ip));
 			mConnected = true;
-			#endif
 			xTimeInit();
 			xSettingConnectOk();
 			system_os_post(0, EventStartHttp, 0);
 			break;
 		case EVENT_SOFTAPMODE_STACONNECTED:
-			#ifdef PLATFORM_DEBUG
 			ets_uart_printf("station: " MACSTR "join, AID = %d\r\n",
 					MAC2STR(pEvent->event_info.sta_connected.mac),
 					pEvent->event_info.sta_connected.aid);
-			#endif
 			break;
 		case EVENT_SOFTAPMODE_STADISCONNECTED:
-			#ifdef PLATFORM_DEBUG
 			ets_uart_printf("station: " MACSTR "leave, AID = %d\r\n",
 			MAC2STR(pEvent->event_info.sta_disconnected.mac),
 			pEvent->event_info.sta_disconnected.aid);
-			#endif
 			break;
 		case EVENT_SOFTAPMODE_PROBEREQRECVED:
-//			#ifdef PLATFORM_DEBUG
 //			ets_uart_printf("Event: EVENT_SOFTAPMODE_PROBEREQRECVED, MAC: " MACSTR "\r\n", MAC2STR(pEvent->event_info.ap_probereqrecved.mac));
-//			#endif
 			break;
 		case EVENT_OPMODE_CHANGED:
-			#ifdef PLATFORM_DEBUG
-			ets_uart_printf("Event: EVENT_OPMODE_CHANGED\r\n");
-			#endif
+//			ets_uart_printf("Event: EVENT_OPMODE_CHANGED\r\n");
 			break;
 		default:
-			#ifdef PLATFORM_DEBUG
-			ets_uart_printf("Unexpected event: %d\n", pEvent->event);
-			#endif
+//			ets_uart_printf("Unexpected event: %d\n", pEvent->event);
 			break;
 	}
 }
 
 void ICACHE_FLASH_ATTR cbMainSystemReady(){
-	#ifdef PLATFORM_DEBUG
+	xSwitchInit();
 	os_timer_disarm(&tmStartCounter);
 	os_timer_setfn(&tmStartCounter, (os_timer_func_t *)tcbMainDeferredStart, (void *)0);
 	os_timer_arm(&tmStartCounter, 1000, 1);
-	#else
-	system_os_post(0, EventStartSetup, 0);
-	#endif
 }
 
 static void ICACHE_FLASH_ATTR sMainSetupWifiStMode(){
-	struct station_config stconfig;
+	struct station_config lStConfig;
+	uint8 lMac[6];
 
-	wifi_set_macaddr(STATION_IF, (char *)xSettingMacAddr());
+	ets_uart_printf("Start setup station\r\n");
+	if (xSettingMacAddrPres() == true){
+		wifi_set_macaddr(STATION_IF, (char *)xSettingMacAddr());
+	}
+
 	wifi_set_opmode(STATION_MODE);
 	wifi_station_set_reconnect_policy(true);
 	wifi_station_disconnect();
 	wifi_station_dhcpc_stop();
-	if(wifi_station_get_config(&stconfig))
+	if(wifi_station_get_config(&lStConfig))
 	{
-		os_memcpy(stconfig.ssid, xSettingSsId(), sizeof(stconfig.ssid));
-		os_memcpy(stconfig.password, xSettingPassword(), sizeof(stconfig.password));
-		stconfig.bssid_set = 0;
-		if(wifi_station_set_config(&stconfig))
+		os_memset(lStConfig.ssid, 0, sizeof(lStConfig.ssid));
+		os_memset(lStConfig.password, 0, sizeof(lStConfig.password));
+		os_strcpy(lStConfig.ssid, xSettingSsId());
+		os_strcpy(lStConfig.password, xSettingPassword());
+		lStConfig.bssid_set = 0;
+		if(wifi_station_set_config(&lStConfig))
 		{
-			#ifdef PLATFORM_DEBUG
 			ets_uart_printf("Configuration finished: Station!\r\n");
-			#endif
 			wifi_station_dhcpc_start();
 			wifi_station_connect();
 			os_timer_disarm(&tmIpTimeOut);
 			os_timer_setfn(&tmIpTimeOut, (os_timer_func_t *)tcbIpTimeOut, (void *)0);
 			os_timer_arm(&tmIpTimeOut, 30000, 0);
 		} else {
-			#ifdef PLATFORM_DEBUG
 			ets_uart_printf("Configuration failed: Station config set!\r\n");
-			#endif
 		}
 	}
 }
@@ -249,20 +223,14 @@ static void ICACHE_FLASH_ATTR sMainSetupWifiApMode()
 		lApConfig.ssid_len = 0;
 		lApConfig.authmode = AUTH_WPA_WPA2_PSK;
 		if(wifi_softap_set_config(&lApConfig)){
-			#ifdef PLATFORM_DEBUG
 			ets_uart_printf("Configuration finished: SoftAP!\r\n");
 			mConnected = true;
-			#endif
 			system_os_post(0, EventStartHttp, 0);
 		} else {
-			#ifdef PLATFORM_DEBUG
 			ets_uart_printf("Configuration failed: Softap config set!\r\n");
-			#endif
 		}
 	} else {
-		#ifdef PLATFORM_DEBUG
 		ets_uart_printf("Configuration failed: Softap config get!\r\n");
-		#endif
 	}
 }
 
@@ -270,7 +238,7 @@ void ICACHE_FLASH_ATTR eMainSetup()
 {
 	xSettingInit();
 	xLogInit();
-	xSwitchInit();
+//	xSwitchInit();
 	xButtonInit();
 	if(wifi_station_get_auto_connect() == 1){
 		wifi_station_set_auto_connect(0);
@@ -289,11 +257,9 @@ void ICACHE_FLASH_ATTR eMainSetup()
 void ICACHE_FLASH_ATTR user_init()
 {
 	uart_init(BIT_RATE_115200, BIT_RATE_115200);
-#ifdef PLATFORM_DEBUG
 	mConnected = false;
 	mStartCounter = 0;
 	mDeferredStart = true;
-#endif
 	xEventInit();
 	system_init_done_cb(&cbMainSystemReady);
 }

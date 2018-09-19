@@ -11,7 +11,6 @@
 #include "user_config.h"
 
 struct setting{
-	int	sVersion;
 	char sSsId[LEN_SSID];
 	char sPassword[LEN_PASSWORD];
 	uint8 sMac[6];
@@ -19,6 +18,8 @@ struct setting{
 	char sDescription[128];
 	uint8 sLogLevel;
 	bool sButton;
+	uint8 sServerIP[4];
+	int sServerPort;
 };
 
 void xSettingInit();
@@ -27,6 +28,7 @@ const char* xSettingSsId();
 const char* xSettingPassword();
 const char* xSettingName();
 const char* xSettingDescription();
+bool xSettingMacAddrPres();
 const char* xSettingMacAddr();
 void xSettingMac(char *pMac);
 uint8 xSettingLogLevel();

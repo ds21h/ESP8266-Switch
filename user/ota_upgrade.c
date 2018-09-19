@@ -14,7 +14,6 @@ bool gHttpActive;
 
 char *mVersion;
 struct upgrade_server_info *mUpgServer = NULL;
-
 static os_timer_t tmStartUpgrade;
 struct upgrade_server_info *upServer = NULL;
 
@@ -22,12 +21,8 @@ LOCAL void ICACHE_FLASH_ATTR cbUpgrade(void *arg){
 	struct upgrade_server_info *lServer;
 
 	lServer = (struct upgrade_server_info *)arg;
-	ets_uart_printf("Upgrade flag: %x\r\n", lServer->upgrade_flag);
 	if(lServer->upgrade_flag == true){
-		ets_uart_printf("Upgrade Finished! --> Reboot!\r\n");
 		system_upgrade_reboot();
-	} else {
-		ets_uart_printf("Upgrade failed!\r\n");
 	}
 
 	os_free(mUpgServer->url);
@@ -44,14 +39,11 @@ static void ICACHE_FLASH_ATTR tcbUpgradeStart(void *arg){
 	os_sprintf(mUpgServer->pre_version, VERSION);
 	os_strcpy(mUpgServer->upgrade_version, mVersion);
 
-	mUpgServer->ip[0] = 192;
-	mUpgServer->ip[1] = 168;
-	mUpgServer->ip[2] = 2;
-	mUpgServer->ip[3] = 99;
-	mUpgServer->port = 8080;
+	os_memcpy(mUpgServer->ip, (char *)xSettingServerIp(), 4);
+	mUpgServer->port = xSettingServerPort();
 
 	mUpgServer->check_cb = cbUpgrade;
-	mUpgServer->check_times = 120000; // TimeOut voor callback
+	mUpgServer->check_times = 60000; // TimeOut for callback
 
 	if(system_upgrade_userbin_check() == UPGRADE_FW_BIN1){
 		lImageBin = 2;
@@ -62,11 +54,11 @@ static void ICACHE_FLASH_ATTR tcbUpgradeStart(void *arg){
 	mUpgServer->url = (uint8 *) os_zalloc(512);
 	os_sprintf(mUpgServer->url,
 "GET /EspServer/Fota/Image/%d/%s HTTP/1.1\r\n"
-"Host: 192.168.2.99:8080\r\n"
+"Host: " IPSTR ":%d\r\n"
 "Connection: close\r\n"
 "Accept: */*\r\n"
 "Cache-Control: no-cache\r\n"
-"\r\n", lImageBin, mVersion);
+"\r\n", lImageBin, mVersion, IP2STR(mUpgServer->ip), mUpgServer->port);
 //	"Accept-Encoding: gzip,deflate,sdch\r\n"
 
 	if(system_upgrade_start(mUpgServer) == false){

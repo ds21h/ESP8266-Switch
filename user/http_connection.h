@@ -9,7 +9,7 @@
 #include <ip_addr.h>
 #include <espconn.h>
 
-#define HTTP_MAX_CONN			4
+#define HTTP_MAX_CONN			2
 #define HTTP_BUFFER_SIZE		1024
 #define MESSAGE_VERB_SIZE		7
 #define MESSAGE_URI_SIZE		256

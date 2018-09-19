@@ -20,6 +20,21 @@
 #include "http_connection.h"
 #include "events.h"
 
+struct version{
+	uint16 sMajor;
+	uint16 sMinor;
+	uint16 sRevision;
+};
+
+enum upgradetestresult{
+	UpgradeTestOK,
+	UpgradeTestVersionLow,
+	UpgradeTestVersionEqual,
+	UpgradeTestVersionOldError,
+	UpgradeTestVersionNewError,
+	UpgradeTestError
+};
+
 enum segment{
 SegmentSwitch,
 SegmentLog,
@@ -58,6 +73,7 @@ static int mLang = LangUK;
 
 static int mStart;
 static char mVersion[12];
+static bool mForce;
 
 static int ICACHE_FLASH_ATTR cbMessageFillReply(struct jsontree_context *pCtx);
 static int ICACHE_FLASH_ATTR cbMessageFillSetting(struct jsontree_context *pCtx);
@@ -125,7 +141,7 @@ static int ICACHE_FLASH_ATTR cbMessageFillReply(struct jsontree_context *pCtx){
 
 static int ICACHE_FLASH_ATTR cbMessageFillSetting(struct jsontree_context *pCtx){
     const char* lPad;
-    char lMac[17];
+    char lWorkStr[17];
 
 	lPad = jsontree_path_name(pCtx, pCtx->depth - 1);
     if (os_strncmp(lPad, "result", 6) == 0) {
@@ -138,8 +154,8 @@ static int ICACHE_FLASH_ATTR cbMessageFillSetting(struct jsontree_context *pCtx)
         jsontree_write_string(pCtx, xSettingPassword());
     }
     if (os_strncmp(lPad, "mac", 4) == 0) {
-    	xSettingMac(lMac);
-        jsontree_write_string(pCtx, lMac);
+    	xSettingMac(lWorkStr);
+        jsontree_write_string(pCtx, lWorkStr);
     }
     if (os_strncmp(lPad, "naam", 4) == 0 || os_strncmp(lPad, "name", 4) == 0) {
         jsontree_write_string(pCtx, xSettingName());
@@ -155,6 +171,13 @@ static int ICACHE_FLASH_ATTR cbMessageFillSetting(struct jsontree_context *pCtx)
     }
     if (os_strncmp(lPad, "button", 6) == 0) {
         jsontree_write_string(pCtx, xSettingButton() ? "on" : "off");
+    }
+    if (os_strncmp(lPad, "serverip", 8) == 0) {
+    	xSettingServerIpDisp(lWorkStr);
+        jsontree_write_string(pCtx, lWorkStr);
+    }
+    if (os_strncmp(lPad, "serverport", 10) == 0) {
+        jsontree_write_int(pCtx, xSettingServerPort());
     }
     return 0;
 }
@@ -241,7 +264,9 @@ void ICACHE_FLASH_ATTR sMessageSettingReplyNL(char *pMessage){
 	                JSONTREE_PAIR("naam", &mMessageFillSetting_callback),
 	                JSONTREE_PAIR("omschr", &mMessageFillSetting_callback),
 	                JSONTREE_PAIR("logniveau", &mMessageFillSetting_callback),
-					JSONTREE_PAIR("drukknop", &mMessageFillSetting_callback));
+					JSONTREE_PAIR("drukknop", &mMessageFillSetting_callback),
+					JSONTREE_PAIR("serverip", &mMessageFillSetting_callback),
+					JSONTREE_PAIR("serverport", &mMessageFillSetting_callback));
 
 	mBuffer = pMessage;
     mPos = 0;
@@ -269,7 +294,9 @@ void ICACHE_FLASH_ATTR sMessageSettingReplyUK(char *pMessage){
 	                JSONTREE_PAIR("name", &mMessageFillSetting_callback),
 	                JSONTREE_PAIR("descr", &mMessageFillSetting_callback),
 	                JSONTREE_PAIR("loglevel", &mMessageFillSetting_callback),
-					JSONTREE_PAIR("button", &mMessageFillSetting_callback));
+					JSONTREE_PAIR("button", &mMessageFillSetting_callback),
+					JSONTREE_PAIR("serverip", &mMessageFillSetting_callback),
+					JSONTREE_PAIR("serverport", &mMessageFillSetting_callback));
 
 	mBuffer = pMessage;
     mPos = 0;
@@ -554,6 +581,36 @@ static uint8 ICACHE_FLASH_ATTR sHexToInt(char pHex){
 	return lInt;
 }
 
+static ICACHE_FLASH_ATTR sParseIp (const char* pIpString, uint8 pIp[4]){
+	const char *lPos;
+	int lVolgNr;
+	bool lInit;
+
+	lPos = pIpString;
+	lVolgNr = 0;
+	lInit = true;
+	while (*lPos != '\0'){
+		if (lInit == true){
+			pIp[lVolgNr] = 0;
+			lInit = false;
+		}
+		if (isdigit(*lPos)){
+			pIp[lVolgNr] *= 10;
+			pIp[lVolgNr] += *lPos - '0';
+		} else {
+			if (*lPos == '.'){
+				lVolgNr++;
+				if (lVolgNr < 4){
+					lInit = true;
+				} else {
+					lVolgNr = 3;
+				}
+			}
+		}
+		lPos++;
+	}
+}
+
 static void ICACHE_FLASH_ATTR sMessageSetSetting(char * pMessage){
 	struct setting *lSetting;
 	char *lBuffer;
@@ -565,6 +622,7 @@ static void ICACHE_FLASH_ATTR sMessageSetSetting(char * pMessage){
     uint8 lInt;
     uint8 lByte;
     uint8 lMac[6];
+    uint8 lIp[4];
     bool lMacOk;
     bool lSettingReset;
 
@@ -758,6 +816,28 @@ static void ICACHE_FLASH_ATTR sMessageSetSetting(char * pMessage){
                     }
             	}
             }
+            if (xStrCmpX(lBuffer, "serverip") == 0){
+                lType2 = jsonparse_next(&lParseState);
+                if (lType2 == JSON_TYPE_PAIR){
+                    lType2 = jsonparse_next(&lParseState);
+                    if (lType2 == JSON_TYPE_STRING){
+                        os_bzero(lBuffer, 64);
+                        jsonparse_copy_value(&lParseState, lBuffer, 64);
+                        sParseIp(lBuffer, lIp);
+                        os_memcpy(lSetting->sServerIP, lIp, 4);
+                    }
+                }
+            }
+            if (xStrCmpX(lBuffer, "serverport") == 0) {
+                lType2 = jsonparse_next(&lParseState);
+                if (lType2 == JSON_TYPE_PAIR){
+                    lType2 = jsonparse_next(&lParseState);
+                    if (lType2 == JSON_TYPE_NUMBER){
+                        lSetting->sServerPort = jsonparse_get_value_as_int(&lParseState);
+                    }
+                }
+            }
+
             if (xStrCmpX(lBuffer, "reset") == 0) {
                lType2 = jsonparse_next(&lParseState);
                 if (lType2 == JSON_TYPE_PAIR){
@@ -799,7 +879,7 @@ static bool ICACHE_FLASH_ATTR sMessageFindVersion(char **pUriPtr){
 		lEnd = false;
 		lLength = 0;
 		do {
-			if (*lUriPtr == '\0'){
+			if (*lUriPtr == '\0' || *lUriPtr == '&'){
 				lEnd = true;
 			} else {
 				lLength++;
@@ -809,8 +889,20 @@ static bool ICACHE_FLASH_ATTR sMessageFindVersion(char **pUriPtr){
 		if (lLength < 6 || lLength > 12){
 			lOK = false;
 		} else {
-			os_strcpy(mVersion, lStart);
-			lOK = true;
+			os_memcpy(mVersion, lStart, lLength);
+			mVersion[lLength] = '\0';
+			if (*lUriPtr == '&'){
+				lUriPtr++;
+				if (xStrnCmpX(lUriPtr, "force", 5) == 0 && *(lUriPtr + 5) == '\0'){
+					mForce = true;
+					lOK = true;
+				} else {
+					lOK = false;
+				}
+			} else {
+				mForce = false;
+				lOK = true;
+			}
 		}
 	} else {
 		lOK = false;
@@ -1014,10 +1106,94 @@ void ICACHE_FLASH_ATTR xMessageMakeErrorReply(char *pText, char *pMessage){
 	}
 }
 
+static bool ICACHE_FLASH_ATTR sParseVersion (struct version *pVersion, const char* pVersionStr){
+	const char *lPos;
+	int lVolgNr;
+	bool lResult;
+	uint16 lVersionPart[3] = {0};
+
+	lPos = pVersionStr;
+	lVolgNr = 0;
+	if (*lPos == 'v' || *lPos == 'V'){
+		lPos++;
+		lResult = true;
+		while (*lPos != '\0'){
+			if (isdigit(*lPos)){
+				lVersionPart[lVolgNr] *= 10;
+				lVersionPart[lVolgNr] += *lPos - '0';
+			} else {
+				if (*lPos == '.'){
+					lVolgNr++;
+					if (lVolgNr >= 3){
+						lResult = false;
+						break;
+					}
+				} else {
+					lResult = false;
+				}
+			}
+			lPos++;
+		}
+	} else {
+		lResult = false;
+	}
+	if (lResult == true){
+		pVersion->sMajor = lVersionPart[0];
+		pVersion->sMinor = lVersionPart[1];
+		pVersion->sRevision = lVersionPart[2];
+	}
+	return lResult;
+}
+
+static int sCompareVersion(struct version *pVersion1, struct version *pVersion2){
+	int lResult;
+
+	lResult = pVersion1->sMajor - pVersion2->sMajor;
+	if (lResult == 0){
+		lResult = pVersion1->sMinor - pVersion2->sMinor;
+		if (lResult == 0){
+			lResult = pVersion1->sRevision - pVersion2->sRevision;
+		}
+	}
+	return lResult;
+}
+
+static enum upgradetestresult ICACHE_FLASH_ATTR sTestUpgrade(){
+	struct version lVersionOld;
+	struct version lVersionNew;
+	int lCmp;
+	bool lParseResult;
+	enum upgradetestresult lTestResult;
+
+	lParseResult = sParseVersion(&lVersionOld, VERSION);
+	if (lParseResult == true){
+		lParseResult = sParseVersion(&lVersionNew, mVersion);
+		if (lParseResult == true){
+			lCmp = sCompareVersion(&lVersionNew, &lVersionOld);
+			if (lCmp > 0){
+				lTestResult = UpgradeTestOK;
+			} else {
+				if (lCmp == 0){
+					lTestResult = UpgradeTestVersionEqual;
+				} else {
+					lTestResult = UpgradeTestVersionLow;
+				}
+			}
+		} else {
+			lTestResult = UpgradeTestVersionNewError;
+		}
+	} else {
+		lTestResult = UpgradeTestVersionOldError;
+	}
+
+	return lTestResult;
+}
+
 void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot){
 	enum uri lUriType;
 	enum action lAction;
 	int lStart;
+	enum upgradetestresult lTestResult;
 	bool lUpgrade;
 
 	lUpgrade = false;
@@ -1063,12 +1239,49 @@ void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot){
 				pSlot->sProcessResult = HTTP_OK;
 				break;
 			case UriUpgrade:
-				mProcessOk = true;
-				os_sprintf(mText, "Upgrade requested to version %s", mVersion);
-				sMessageErrorReplyUK(pSlot->sAnswer);
-				pSlot->sProcessResult = HTTP_OK;
-				xLogEntry(LOG_UPGRADE, pSlot->sRemoteIp.addr);
-				lUpgrade = true;
+				if (mForce == true){
+					ets_uart_printf("Force\r\n");
+					mProcessOk = true;
+					os_sprintf(mText, "Force Upgrade requested to version %s", mVersion);
+					sMessageErrorReplyUK(pSlot->sAnswer);
+					pSlot->sProcessResult = HTTP_OK;
+					xLogEntry(LOG_UPGRADE, pSlot->sRemoteIp.addr);
+					lUpgrade = true;
+				} else {
+					lTestResult = sTestUpgrade();
+					switch (lTestResult){
+						case UpgradeTestOK:
+							os_sprintf(mText, "Upgrade to version %s", mVersion);
+							ets_uart_printf("Upgrade OK\r\n");
+							mProcessOk = true;
+							xLogEntry(LOG_UPGRADE, pSlot->sRemoteIp.addr);
+							lUpgrade = true;
+							break;
+						case UpgradeTestVersionLow:
+							os_strcpy(mText, "Upgrade: Requested version before current one");
+							mProcessOk = false;
+							break;
+						case UpgradeTestVersionEqual:
+							os_strcpy(mText, "Upgrade: Requested version already installed");
+							mProcessOk = false;
+							break;
+						case UpgradeTestVersionOldError:
+							os_strcpy(mText, "Upgrade: Old version wrong, try force");
+							mProcessOk = false;
+							break;
+						case UpgradeTestVersionNewError:
+							os_strcpy(mText, "Upgrade: Version wrong");
+							mProcessOk = false;
+							break;
+						default:
+							os_strcpy(mText, "Upgrade: Undefined error");
+							mProcessOk = false;
+							break;
+
+					}
+					sMessageErrorReplyUK(pSlot->sAnswer);
+					pSlot->sProcessResult = HTTP_OK;
+				}
 				break;
 			default:
 				mProcessOk = false;
