@@ -5,9 +5,9 @@ The switch registers to your wifi network. It can then be adressed by a few REST
 
 If you like this/hate this/have any comments/have any questions/just want to chat about this please leave me a message at ds21h@hotmail.com
 
-version 2.2.1 19-09-2018:
+Version 2.2.1 19-09-2018:
 - xSwitchInit moved from eMainSetup to cbMainSystemReady in order to bypass the startup delay: The switch is ON on start and xSwitchInit switches it off!
-version 2.2.0 13-08-2018 (never published):
+Version 2.2.0 13-08-2018 (never published):
 - MAC is optional in setting. Note: Setting the MAC requires a double restart of the module before the MAC is used.
 - Server IP and Port are now part of Settings.
 - In Settings the version is relocated to the front. This to make upgrade possible. This version is not compatible with previous version.
