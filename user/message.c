@@ -4,8 +4,6 @@
  *  Created on: 9 jun. 2017
  *      Author: Jan
  */
-#include "message.h"
-
 #include <c_types.h>
 #include <osapi.h>
 #include <mem.h>
@@ -39,7 +37,6 @@ enum segment{
 SegmentSwitch,
 SegmentLog,
 SegmentSetting,
-SegmentButton,
 SegmentUpgrade,
 SegmentEnd,
 SegmentData,
@@ -52,7 +49,6 @@ UriBasis,
 UriLog,
 UriLogPar,
 UriSetting,
-UriButton,
 UriUpgrade,
 UriFavicon,
 UriError
@@ -63,13 +59,6 @@ ActionNone,
 ActionOff,
 ActionOn
 };
-
-enum language {
-	LangNL,
-	LangUK
-};
-
-static int mLang = LangUK;
 
 static int mStart;
 static char mVersion[12];
@@ -102,38 +91,31 @@ static int ICACHE_FLASH_ATTR cbMessageFillReply(struct jsontree_context *pCtx){
     if (os_strncmp(lPad, "result", 6) == 0) {
         jsontree_write_string(pCtx, mProcessOk ? "OK" : "NOK");
     }
-    if (os_strncmp(lPad, "versie", 6) == 0 || os_strncmp(lPad, "version", 7) == 0) {
+    if (os_strncmp(lPad, "version", 7) == 0) {
         jsontree_write_string(pCtx, VERSION);
     }
-    if (os_strncmp(lPad, "sdk-versie", 10) == 0 || os_strncmp(lPad, "sdk-version", 11) == 0) {
+      if (os_strncmp(lPad, "sdk-version", 11) == 0) {
         jsontree_write_string(pCtx, (char*)system_get_sdk_version());
     }
-    if (os_strncmp(lPad, "datum", 5) == 0 || os_strncmp(lPad, "date", 4) == 0) {
+      if (os_strncmp(lPad, "date", 4) == 0) {
         jsontree_write_string(pCtx, __DATE__);
     }
-    if (os_strncmp(lPad, "naam", 4) == 0 || os_strncmp(lPad, "name", 4) == 0) {
+      if (os_strncmp(lPad, "name", 4) == 0) {
         jsontree_write_string(pCtx, xSettingName());
     }
-    if (os_strncmp(lPad, "omschr", 6) == 0 || os_strncmp(lPad, "descr", 5) == 0) {
+      if (os_strncmp(lPad, "descr", 5) == 0) {
         jsontree_write_string(pCtx, xSettingDescription());
     }
     if (os_strncmp(lPad, "status", 6) == 0) {
-    	if (mLang == LangNL){
-            jsontree_write_string(pCtx, xSwitchStatus() ? "aan" : "uit");
-    	} else {
             jsontree_write_string(pCtx, xSwitchStatus() ? "on" : "off");
-    	}
     }
-    if (os_strncmp(lPad, "logniveau", 9) == 0 || os_strncmp(lPad, "loglevel", 8) == 0) {
+      if (os_strncmp(lPad, "loglevel", 8) == 0) {
         jsontree_write_int(pCtx, xSettingLogLevel());
-    }
-    if (os_strncmp(lPad, "drukknop", 8) == 0) {
-        jsontree_write_string(pCtx, xSettingButton() ? "aan" : "uit");
     }
     if (os_strncmp(lPad, "button", 6) == 0) {
         jsontree_write_string(pCtx, xSettingButton() ? "on" : "off");
     }
-    if (os_strncmp(lPad, "melding", 7) == 0 || os_strncmp(lPad, "text", 4) == 0) {
+      if (os_strncmp(lPad, "text", 4) == 0) {
         jsontree_write_string(pCtx, mText);
     }
     return 0;
@@ -150,24 +132,21 @@ static int ICACHE_FLASH_ATTR cbMessageFillSetting(struct jsontree_context *pCtx)
     if (os_strncmp(lPad, "ssid", 4) == 0) {
         jsontree_write_string(pCtx, xSettingSsId());
     }
-    if (os_strncmp(lPad, "wachtwoord", 10) == 0 || os_strncmp(lPad, "password", 8) == 0) {
+    if (os_strncmp(lPad, "password", 8) == 0) {
         jsontree_write_string(pCtx, xSettingPassword());
     }
     if (os_strncmp(lPad, "mac", 4) == 0) {
     	xSettingMac(lWorkStr);
         jsontree_write_string(pCtx, lWorkStr);
     }
-    if (os_strncmp(lPad, "naam", 4) == 0 || os_strncmp(lPad, "name", 4) == 0) {
+    if (os_strncmp(lPad, "name", 4) == 0) {
         jsontree_write_string(pCtx, xSettingName());
     }
-    if (os_strncmp(lPad, "omschr", 6) == 0 || os_strncmp(lPad, "descr", 5) == 0) {
+    if (os_strncmp(lPad, "descr", 5) == 0) {
         jsontree_write_string(pCtx, xSettingDescription());
     }
-    if (os_strncmp(lPad, "logniveau", 9) == 0 || os_strncmp(lPad, "loglevel", 8) == 0) {
+    if (os_strncmp(lPad, "loglevel", 8) == 0) {
         jsontree_write_int(pCtx, xSettingLogLevel());
-    }
-    if (os_strncmp(lPad, "drukknop", 8) == 0) {
-        jsontree_write_string(pCtx, xSettingButton() ? "aan" : "uit");
     }
     if (os_strncmp(lPad, "button", 6) == 0) {
         jsontree_write_string(pCtx, xSettingButton() ? "on" : "off");
@@ -192,13 +171,13 @@ LOCAL int ICACHE_FLASH_ATTR cbMessageFillLog(struct jsontree_context *pCtx){
     if (os_strncmp(lPath, "result", 6) == 0) {
         jsontree_write_string(pCtx, mProcessOk ? "OK" : "NOK");
     }
-    if (os_strncmp(lPath, "aantal", 6) == 0 || os_strncmp(lPath, "number", 6) == 0) {
+    if (os_strncmp(lPath, "number", 6) == 0) {
         jsontree_write_int(pCtx, xLogNumber());
     }
-    if (os_strncmp(lPath, "huidig", 6) == 0 || os_strncmp(lPath, "current", 7) == 0) {
+    if (os_strncmp(lPath, "current", 7) == 0) {
         jsontree_write_int(pCtx, xLogCurrent());
     }
-    if (os_strncmp(lPath, "tijd", 4) == 0 || os_strncmp(lPath, "time", 4) == 0) {
+    if (os_strncmp(lPath, "time", 4) == 0) {
     	lTime = xTimeNow();
     	xTimeString(lTime, lTimeStr, sizeof(lTimeStr));
         jsontree_write_string(pCtx, lTimeStr);
@@ -225,10 +204,10 @@ LOCAL int ICACHE_FLASH_ATTR cbMessageFillLogEntry(struct jsontree_context *pCtx)
     if (os_strncmp(lPath, "entry", 5) == 0) {
         jsontree_write_int(pCtx, mEntry);
     }
-    if (os_strncmp(lPath, "aktie", 5) == 0 || os_strncmp(lPath, "action", 6) == 0) {
+    if (os_strncmp(lPath, "action", 6) == 0) {
         jsontree_write_string(pCtx, (char *)xLogActionText(mEntry));
     }
-    if (os_strncmp(lPath, "tijd", 4) == 0 || os_strncmp(lPath, "time", 4) == 0) {
+    if (os_strncmp(lPath, "time", 4) == 0) {
     	lTime = xLogTime(mEntry);
     	xTimeString(lTime, lTimeStr, sizeof(lTimeStr));
         jsontree_write_string(pCtx, lTimeStr);
@@ -252,38 +231,7 @@ static int ICACHE_FLASH_ATTR sMessageWriteChar(int pChar)
     return 0;
 }
 
-
-void ICACHE_FLASH_ATTR sMessageSettingReplyNL(char *pMessage){
-	bool lContinue;
-	int lResult;
-	JSONTREE_OBJECT(lResult_Tree,
-	                JSONTREE_PAIR("resultaat", &mMessageFillSetting_callback),
-	                JSONTREE_PAIR("ssid", &mMessageFillSetting_callback),
-	                JSONTREE_PAIR("wachtwoord", &mMessageFillSetting_callback),
-	                JSONTREE_PAIR("mac", &mMessageFillSetting_callback),
-	                JSONTREE_PAIR("naam", &mMessageFillSetting_callback),
-	                JSONTREE_PAIR("omschr", &mMessageFillSetting_callback),
-	                JSONTREE_PAIR("logniveau", &mMessageFillSetting_callback),
-					JSONTREE_PAIR("drukknop", &mMessageFillSetting_callback),
-					JSONTREE_PAIR("serverip", &mMessageFillSetting_callback),
-					JSONTREE_PAIR("serverport", &mMessageFillSetting_callback));
-
-	mBuffer = pMessage;
-    mPos = 0;
-    mSize = MESSAGE_SIZE;
-	jsontree_setup(&mCtx, (struct jsontree_value *)&lResult_Tree, sMessageWriteChar);
-
-	lContinue = true;
-	while (lContinue){
-		lResult = jsontree_print_next(&mCtx);
-		if (lResult == 0){
-			lContinue = false;
-		}
-	}
-	mBuffer[mPos] = 0;
-}
-
-void ICACHE_FLASH_ATTR sMessageSettingReplyUK(char *pMessage){
+void ICACHE_FLASH_ATTR sMessageSettingReply(char *pMessage){
 	bool lContinue;
 	int lResult;
 	JSONTREE_OBJECT(lResult_Tree,
@@ -313,36 +261,7 @@ void ICACHE_FLASH_ATTR sMessageSettingReplyUK(char *pMessage){
 	mBuffer[mPos] = 0;
 }
 
-void ICACHE_FLASH_ATTR sMessageReplyNL(char *pMessage){
-	bool lContinue;
-	int lResult;
-	JSONTREE_OBJECT(lResult_Tree,
-	                JSONTREE_PAIR("resultaat", &mMessageFillReply_callback),
-	                JSONTREE_PAIR("versie", &mMessageFillReply_callback),
-	                JSONTREE_PAIR("sdk-versie", &mMessageFillReply_callback),
-	                JSONTREE_PAIR("datum", &mMessageFillReply_callback),
-	                JSONTREE_PAIR("naam", &mMessageFillReply_callback),
-	                JSONTREE_PAIR("omschr", &mMessageFillReply_callback),
-					JSONTREE_PAIR("status", &mMessageFillReply_callback),
-					JSONTREE_PAIR("logniveau", &mMessageFillReply_callback),
-					JSONTREE_PAIR("drukknop", &mMessageFillReply_callback));
-
-	mBuffer = pMessage;
-    mPos = 0;
-    mSize = MESSAGE_SIZE;
-	jsontree_setup(&mCtx, (struct jsontree_value *)&lResult_Tree, sMessageWriteChar);
-
-	lContinue = true;
-	while (lContinue){
-		lResult = jsontree_print_next(&mCtx);
-		if (lResult == 0){
-			lContinue = false;
-		}
-	}
-	mBuffer[mPos] = 0;
-}
-
-void ICACHE_FLASH_ATTR sMessageReplyUK(char *pMessage){
+void ICACHE_FLASH_ATTR sMessageReply(char *pMessage){
 	bool lContinue;
 	int lResult;
 	JSONTREE_OBJECT(lResult_Tree,
@@ -371,29 +290,7 @@ void ICACHE_FLASH_ATTR sMessageReplyUK(char *pMessage){
 	mBuffer[mPos] = 0;
 }
 
-static void ICACHE_FLASH_ATTR sMessageErrorReplyNL(char *pMessage){
-	bool lContinue;
-	int lResult;
-	JSONTREE_OBJECT(lResult_Tree,
-	                JSONTREE_PAIR("resultaat", &mMessageFillReply_callback),
-					JSONTREE_PAIR("melding", &mMessageFillReply_callback));
-
-	mBuffer = pMessage;
-    mPos = 0;
-    mSize = MESSAGE_SIZE;
-	jsontree_setup(&mCtx, (struct jsontree_value *)&lResult_Tree, sMessageWriteChar);
-
-	lContinue = true;
-	while (lContinue){
-		lResult = jsontree_print_next(&mCtx);
-		if (lResult == 0){
-			lContinue = false;
-		}
-	}
-	mBuffer[mPos] = 0;
-}
-
-static void ICACHE_FLASH_ATTR sMessageErrorReplyUK(char *pMessage){
+static void ICACHE_FLASH_ATTR sMessageErrorReply(char *pMessage){
 	bool lContinue;
 	int lResult;
 	JSONTREE_OBJECT(lResult_Tree,
@@ -415,56 +312,7 @@ static void ICACHE_FLASH_ATTR sMessageErrorReplyUK(char *pMessage){
 	mBuffer[mPos] = 0;
 }
 
-void ICACHE_FLASH_ATTR sMessageLogReplyNL(int pStart, char *pMessage){
-	bool lContinue;
-	int lResult;
-	JSONTREE_OBJECT(lLogEntry_Tree,
-					JSONTREE_PAIR("entry", &mMessageFillLogEntry_callback),
-					JSONTREE_PAIR("aktie", &mMessageFillLogEntry_callback),
-					JSONTREE_PAIR("tijd", &mMessageFillLogEntry_callback),
-					JSONTREE_PAIR("ip", &mMessageFillLogEntry_callback));
-	JSONTREE_ARRAY(lLog_Array, (struct jsontree_value *)&lLogEntry_Tree,
-								(struct jsontree_value *)&lLogEntry_Tree,
-								(struct jsontree_value *)&lLogEntry_Tree,
-								(struct jsontree_value *)&lLogEntry_Tree,
-								(struct jsontree_value *)&lLogEntry_Tree,
-								(struct jsontree_value *)&lLogEntry_Tree,
-								(struct jsontree_value *)&lLogEntry_Tree,
-								(struct jsontree_value *)&lLogEntry_Tree,
-								(struct jsontree_value *)&lLogEntry_Tree,
-								(struct jsontree_value *)&lLogEntry_Tree);
-	JSONTREE_OBJECT(lResult_Tree,
-					JSONTREE_PAIR("resultaat", &mMessageFillLog_callback),
-	                JSONTREE_PAIR("aantal", &mMessageFillLog_callback),
-	                JSONTREE_PAIR("huidig", &mMessageFillLog_callback),
-					JSONTREE_PAIR("tijd", &mMessageFillLog_callback),
-					JSONTREE_PAIR("log", &lLog_Array));
-
-	mBuffer = pMessage;
-	if (pStart < 0){
-		mEntry = xLogCurrent() - 1;
-	} else {
-		mEntry = (uint8)pStart;
-	}
-	if (mEntry >= LOG_NUMBER_ENTRIES){
-		mEntry = LOG_NUMBER_ENTRIES - 1;
-	}
-	mEntryNumber = 0;
-    mPos = 0;
-    mSize = MESSAGE_SIZE;
-	jsontree_setup(&mCtx, (struct jsontree_value *)&lResult_Tree, sMessageWriteChar);
-
-	lContinue = true;
-	while (lContinue){
-		lResult = jsontree_print_next(&mCtx);
-		if (lResult == 0){
-			lContinue = false;
-		}
-	}
-	mBuffer[mPos] = 0;
-}
-
-void ICACHE_FLASH_ATTR sMessageLogReplyUK(int pStart, char *pMessage){
+void ICACHE_FLASH_ATTR sMessageLogReply(int pStart, char *pMessage){
 	bool lContinue;
 	int lResult;
 	JSONTREE_OBJECT(lLogEntry_Tree,
@@ -533,17 +381,6 @@ int ICACHE_FLASH_ATTR sMessageActionParse(char * pMessage){
                     if (lType2 == JSON_TYPE_STRING){
                         os_bzero(lBuffer, 64);
                         jsonparse_copy_value(&lParseState, lBuffer, sizeof(lBuffer));
-                        if (mLang == LangNL){
-                            if (xStrCmpX(lBuffer, "aan") == 0) {
-                            	lAction = ActionOn;
-                            } else {
-                            	if (xStrCmpX(lBuffer, "uit") == 0) {
-                                	lAction = ActionOff;
-                            	} else {
-                            		lAction = ActionNone;
-                            	}
-                            }
-                        } else {
                             if (xStrCmpX(lBuffer, "on") == 0) {
                             	lAction = ActionOn;
                             } else {
@@ -553,7 +390,7 @@ int ICACHE_FLASH_ATTR sMessageActionParse(char * pMessage){
                             		lAction = ActionNone;
                             	}
                             }
-                        }
+//                        }
                     }
                 }
             }
@@ -646,20 +483,7 @@ static void ICACHE_FLASH_ATTR sMessageSetSetting(char * pMessage){
                     }
                 }
             }
-            if (xStrCmpX(lBuffer, "wachtwoord") == 0) {
-            	if (mLang == LangNL){
-                    lType2 = jsonparse_next(&lParseState);
-                    if (lType2 == JSON_TYPE_PAIR){
-                        lType2 = jsonparse_next(&lParseState);
-                        if (lType2 == JSON_TYPE_STRING){
-                            os_bzero(lSetting->sPassword, sizeof(lSetting->sPassword));
-                            jsonparse_copy_value(&lParseState, lSetting->sPassword, sizeof(lSetting->sPassword));
-                        }
-                    }
-            	}
-            }
             if (xStrCmpX(lBuffer, "password") == 0) {
-            	if (mLang == LangUK){
                     lType2 = jsonparse_next(&lParseState);
                     if (lType2 == JSON_TYPE_PAIR){
                         lType2 = jsonparse_next(&lParseState);
@@ -668,7 +492,6 @@ static void ICACHE_FLASH_ATTR sMessageSetSetting(char * pMessage){
                             jsonparse_copy_value(&lParseState, lSetting->sPassword, sizeof(lSetting->sPassword));
                         }
                     }
-            	}
             }
             if (xStrCmpX(lBuffer, "mac") == 0) {
                 lType2 = jsonparse_next(&lParseState);
@@ -708,20 +531,7 @@ static void ICACHE_FLASH_ATTR sMessageSetSetting(char * pMessage){
                     }
                 }
             }
-            if (xStrCmpX(lBuffer, "naam") == 0) {
-            	if (mLang == LangNL){
-                    lType2 = jsonparse_next(&lParseState);
-                    if (lType2 == JSON_TYPE_PAIR){
-                        lType2 = jsonparse_next(&lParseState);
-                        if (lType2 == JSON_TYPE_STRING){
-                            os_bzero(lSetting->sName, sizeof(lSetting->sName));
-                            jsonparse_copy_value(&lParseState, lSetting->sName, sizeof(lSetting->sName));
-                        }
-                    }
-            	}
-            }
             if (xStrCmpX(lBuffer, "name") == 0) {
-            	if (mLang == LangUK){
                     lType2 = jsonparse_next(&lParseState);
                     if (lType2 == JSON_TYPE_PAIR){
                         lType2 = jsonparse_next(&lParseState);
@@ -730,22 +540,8 @@ static void ICACHE_FLASH_ATTR sMessageSetSetting(char * pMessage){
                             jsonparse_copy_value(&lParseState, lSetting->sName, sizeof(lSetting->sName));
                         }
                     }
-            	}
-            }
-            if (xStrCmpX(lBuffer, "omschr") == 0) {
-            	if (mLang == LangNL){
-                    lType2 = jsonparse_next(&lParseState);
-                    if (lType2 == JSON_TYPE_PAIR){
-                        lType2 = jsonparse_next(&lParseState);
-                        if (lType2 == JSON_TYPE_STRING){
-                            os_bzero(lSetting->sDescription, sizeof(lSetting->sDescription));
-                            jsonparse_copy_value(&lParseState, lSetting->sDescription, sizeof(lSetting->sDescription));
-                        }
-                    }
-            	}
             }
             if (xStrCmpX(lBuffer, "descr") == 0) {
-            	if (mLang == LangUK){
                     lType2 = jsonparse_next(&lParseState);
                     if (lType2 == JSON_TYPE_PAIR){
                         lType2 = jsonparse_next(&lParseState);
@@ -754,21 +550,8 @@ static void ICACHE_FLASH_ATTR sMessageSetSetting(char * pMessage){
                             jsonparse_copy_value(&lParseState, lSetting->sDescription, sizeof(lSetting->sDescription));
                         }
                     }
-            	}
-            }
-            if (xStrCmpX(lBuffer, "logniveau") == 0) {
-            	if (mLang == LangNL){
-                    lType2 = jsonparse_next(&lParseState);
-                    if (lType2 == JSON_TYPE_PAIR){
-                        lType2 = jsonparse_next(&lParseState);
-                        if (lType2 == JSON_TYPE_NUMBER){
-                            lSetting->sLogLevel = jsonparse_get_value_as_int(&lParseState);
-                        }
-                    }
-            	}
             }
             if (xStrCmpX(lBuffer, "loglevel") == 0) {
-            	if (mLang == LangUK){
                     lType2 = jsonparse_next(&lParseState);
                     if (lType2 == JSON_TYPE_PAIR){
                         lType2 = jsonparse_next(&lParseState);
@@ -776,29 +559,8 @@ static void ICACHE_FLASH_ATTR sMessageSetSetting(char * pMessage){
                             lSetting->sLogLevel = jsonparse_get_value_as_int(&lParseState);
                         }
                     }
-            	}
-            }
-            if (xStrCmpX(lBuffer, "drukknop") == 0) {
-            	if (mLang == LangNL){
-                    lType2 = jsonparse_next(&lParseState);
-                    if (lType2 == JSON_TYPE_PAIR){
-                        lType2 = jsonparse_next(&lParseState);
-                        if (lType2 == JSON_TYPE_STRING){
-                            os_bzero(lBuffer, 64);
-                            jsonparse_copy_value(&lParseState, lBuffer, 64);
-                            if (xStrCmpX(lBuffer, "aan") == 0) {
-                            	lSetting->sButton = true;
-                            } else {
-                            	if (xStrCmpX(lBuffer, "uit") == 0) {
-                                	lSetting->sButton = false;
-                            	}
-                            }
-                        }
-                    }
-            	}
             }
             if (xStrCmpX(lBuffer, "button") == 0) {
-            	if (mLang == LangUK){
                     lType2 = jsonparse_next(&lParseState);
                     if (lType2 == JSON_TYPE_PAIR){
                         lType2 = jsonparse_next(&lParseState);
@@ -814,7 +576,6 @@ static void ICACHE_FLASH_ATTR sMessageSetSetting(char * pMessage){
                             }
                         }
                     }
-            	}
             }
             if (xStrCmpX(lBuffer, "serverip") == 0){
                 lType2 = jsonparse_next(&lParseState);
@@ -858,6 +619,7 @@ static void ICACHE_FLASH_ATTR sMessageSetSetting(char * pMessage){
     	xSettingReset();
     } else {
         xSettingSave(lSetting);
+        xButtonSet();
     }
 
 	os_free(lSetting);
@@ -961,34 +723,12 @@ static enum segment ICACHE_FLASH_ATTR sMessageUriSegment(char **pUriPtr){
 			}
 		}
 		if (lLength == 6){
-			if (xStrnCmpX(lStart, "button", lLength) == 0){
-				if (mLang == LangUK) {
-					lResult = SegmentButton;
-				}
-			}
-		}
-		if (lLength == 8){
-			if (xStrnCmpX(lStart, "drukknop", lLength) == 0){
-				if (mLang == LangNL) {
-					lResult = SegmentButton;
-				}
-			}
-		}
-		if (lLength == 6){
 			if (xStrnCmpX(lStart, "switch", lLength) == 0){
-				mLang = LangUK;
-				lResult = SegmentSwitch;
-			}
-		}
-		if (lLength == 10){
-			if (xStrnCmpX(lStart, "schakelaar", lLength) == 0){
-				mLang = LangNL;
 				lResult = SegmentSwitch;
 			}
 		}
 		if (lLength == 7){
 			if (xStrnCmpX(lStart, "upgrade", lLength) == 0){
-				mLang = LangNL;
 				lResult = SegmentUpgrade;
 			}
 		}
@@ -1045,14 +785,6 @@ static enum uri ICACHE_FLASH_ATTR sMessageTestUriSwitch(char **pUriPtr){
 			lUriType = UriError;
 		}
 		break;
-	case SegmentButton:
-		lSegmentType = sMessageUriSegment(pUriPtr);
-		if (lSegmentType == SegmentEnd){
-			lUriType = UriButton;
-		} else {
-			lUriType = UriError;
-		}
-		break;
 	case SegmentUpgrade:
 		lSegmentType = sMessageUriSegment(pUriPtr);
 		if (lSegmentType == SegmentEnd){
@@ -1099,11 +831,7 @@ void ICACHE_FLASH_ATTR xMessageMakeErrorReply(char *pText, char *pMessage){
 	mProcessOk = false;
 	os_strcpy(mText, pText);
 
-	if (mLang == LangNL){
-		sMessageErrorReplyNL(pMessage);
-	} else {
-		sMessageErrorReplyUK(pMessage);
-	}
+	sMessageErrorReply(pMessage);
 }
 
 static bool ICACHE_FLASH_ATTR sParseVersion (struct version *pVersion, const char* pVersionStr){
@@ -1202,40 +930,24 @@ void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot){
 		switch (lUriType){
 			case UriBasis:
 				mProcessOk = true;
-				if (mLang == LangNL){
-					sMessageReplyNL(pSlot->sAnswer);
-				} else {
-					sMessageReplyUK(pSlot->sAnswer);
-				}
+				sMessageReply(pSlot->sAnswer);
 				pSlot->sProcessResult = HTTP_OK;
 				xLogEntry(LOG_GET_SWITCH, pSlot->sRemoteIp.addr);
 				break;
 			case UriSetting:
 				mProcessOk = true;
-				if (mLang == LangNL){
-					sMessageSettingReplyNL(pSlot->sAnswer);
-				} else {
-					sMessageSettingReplyUK(pSlot->sAnswer);
-				}
+				sMessageSettingReply(pSlot->sAnswer);
 				pSlot->sProcessResult = HTTP_OK;
 				xLogEntry(LOG_GET_SETTING, pSlot->sRemoteIp.addr);
 				break;
 			case UriLog:
 				mProcessOk = true;
-				if (mLang == LangNL){
-					sMessageLogReplyNL(-1, pSlot->sAnswer);
-				} else {
-					sMessageLogReplyUK(-1, pSlot->sAnswer);
-				}
+				sMessageLogReply(-1, pSlot->sAnswer);
 				pSlot->sProcessResult = HTTP_OK;
 				break;
 			case UriLogPar:
 				mProcessOk = true;
-				if (mLang == LangNL){
-					sMessageLogReplyNL(mStart, pSlot->sAnswer);
-				} else {
-					sMessageLogReplyUK(mStart, pSlot->sAnswer);
-				}
+				sMessageLogReply(mStart, pSlot->sAnswer);
 				pSlot->sProcessResult = HTTP_OK;
 				break;
 			case UriUpgrade:
@@ -1243,7 +955,7 @@ void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot){
 					ets_uart_printf("Force\r\n");
 					mProcessOk = true;
 					os_sprintf(mText, "Force Upgrade requested to version %s", mVersion);
-					sMessageErrorReplyUK(pSlot->sAnswer);
+					sMessageErrorReply(pSlot->sAnswer);
 					pSlot->sProcessResult = HTTP_OK;
 					xLogEntry(LOG_UPGRADE, pSlot->sRemoteIp.addr);
 					lUpgrade = true;
@@ -1279,18 +991,14 @@ void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot){
 							break;
 
 					}
-					sMessageErrorReplyUK(pSlot->sAnswer);
+					sMessageErrorReply(pSlot->sAnswer);
 					pSlot->sProcessResult = HTTP_OK;
 				}
 				break;
 			default:
 				mProcessOk = false;
 				os_strcpy(mText, "URI Invalid");
-				if (mLang == LangNL){
-					sMessageErrorReplyNL(pSlot->sAnswer);
-				} else {
-					sMessageErrorReplyUK(pSlot->sAnswer);
-				}
+				sMessageErrorReply(pSlot->sAnswer);
 				pSlot->sProcessResult = HTTP_NOTFOUND;
 				if (lUriType != UriFavicon){
 					xLogEntry(LOG_GET_ERROR, pSlot->sRemoteIp.addr);
@@ -1306,32 +1014,20 @@ void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot){
 					if (lAction == ActionOn){
 						xSwitchSet(true);
 						mProcessOk = true;
-						if (mLang == LangNL){
-							sMessageReplyNL(pSlot->sAnswer);
-						} else {
-							sMessageReplyUK(pSlot->sAnswer);
-						}
+						sMessageReply(pSlot->sAnswer);
 						pSlot->sProcessResult = HTTP_OK;
 						xLogEntry(LOG_PUT_SWITCH_ON, pSlot->sRemoteIp);
 					} else {
 						if (lAction == ActionOff){
 							xSwitchSet(false);
 							mProcessOk = true;
-							if (mLang == LangNL){
-								sMessageReplyNL(pSlot->sAnswer);
-							} else {
-								sMessageReplyUK(pSlot->sAnswer);
-							}
+							sMessageReply(pSlot->sAnswer);
 							pSlot->sProcessResult = HTTP_OK;
 							xLogEntry(LOG_PUT_SWITCH_OFF, pSlot->sRemoteIp);
 						} else {
 							mProcessOk = false;
 							os_strcpy(mText, "Incorrect status");
-							if (mLang == LangNL){
-								sMessageErrorReplyNL(pSlot->sAnswer);
-							} else {
-								sMessageErrorReplyUK(pSlot->sAnswer);
-							}
+							sMessageErrorReply(pSlot->sAnswer);
 							pSlot->sProcessResult = HTTP_BADREQUEST;
 							xLogEntry(LOG_PUT_SWITCH_ERROR, pSlot->sRemoteIp);
 						}
@@ -1340,58 +1036,14 @@ void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot){
 				case UriSetting:
 					sMessageSetSetting(pSlot->sBuffer);
 					mProcessOk = true;
-					if (mLang == LangNL){
-						sMessageSettingReplyNL(pSlot->sAnswer);
-					} else {
-						sMessageSettingReplyUK(pSlot->sAnswer);
-					}
+					sMessageSettingReply(pSlot->sAnswer);
 					pSlot->sProcessResult = HTTP_OK;
 					xLogEntry(LOG_PUT_SETTING, pSlot->sRemoteIp);
-					break;
-				case UriButton:
-					lAction = sMessageActionParse(pSlot->sBuffer);
-					if (lAction == ActionOn){
-						xSettingButtonSet(true);
-						mProcessOk = true;
-						if (mLang == LangNL){
-							sMessageReplyNL(pSlot->sAnswer);
-						} else {
-							sMessageReplyUK(pSlot->sAnswer);
-						}
-						pSlot->sProcessResult = HTTP_OK;
-						xLogEntry(LOG_PUT_BUTTON_ON, pSlot->sRemoteIp);
-					} else {
-						if (lAction == ActionOff){
-							xSettingButtonSet(false);
-							mProcessOk = true;
-							if (mLang == LangNL){
-								sMessageReplyNL(pSlot->sAnswer);
-							} else {
-								sMessageReplyUK(pSlot->sAnswer);
-							}
-							pSlot->sProcessResult = HTTP_OK;
-							xLogEntry(LOG_PUT_BUTTON_OFF, pSlot->sRemoteIp);
-						} else {
-							mProcessOk = false;
-							os_strcpy(mText, "Incorrect status");
-							if (mLang == LangNL){
-								sMessageErrorReplyNL(pSlot->sAnswer);
-							} else {
-								sMessageErrorReplyUK(pSlot->sAnswer);
-							}
-							pSlot->sProcessResult = HTTP_BADREQUEST;
-							xLogEntry(LOG_PUT_BUTTON_ERROR, pSlot->sRemoteIp);
-						}
-					}
 					break;
 				default:
 					mProcessOk = false;
 					os_strcpy(mText, "URI Invalid");
-					if (mLang == LangNL){
-						sMessageErrorReplyNL(pSlot->sAnswer);
-					} else {
-						sMessageErrorReplyUK(pSlot->sAnswer);
-					}
+					sMessageErrorReply(pSlot->sAnswer);
 					pSlot->sProcessResult = HTTP_NOTFOUND;
 					if (lUriType != UriFavicon){
 						xLogEntry(LOG_PUT_ERROR, pSlot->sRemoteIp);
@@ -1401,11 +1053,7 @@ void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot){
 		} else {
 			mProcessOk = false;
 			os_strcpy(mText, "Verb not (yet) supported");
-			if (mLang == LangNL){
-				sMessageErrorReplyNL(pSlot->sAnswer);
-			} else {
-				sMessageErrorReplyUK(pSlot->sAnswer);
-			}
+			sMessageErrorReply(pSlot->sAnswer);
 			pSlot->sProcessResult = HTTP_NOTALLOWED;
 			xLogEntry(LOG_VERB_ERROR, pSlot->sRemoteIp.addr);
 		}

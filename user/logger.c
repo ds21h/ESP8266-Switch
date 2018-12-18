@@ -46,32 +46,49 @@ uint8 ICACHE_FLASH_ATTR xLogCurrent(){
 }
 
 uint8 ICACHE_FLASH_ATTR xLogAction(uint8 pEntry){
-	return mLog->sEntry[pEntry].sAction;
+	if (pEntry < LOG_NUMBER_ENTRIES){
+		return mLog->sEntry[pEntry].sAction;
+	} else {
+		return 0;
+	}
 }
 
 const char * ICACHE_FLASH_ATTR xLogActionText(uint8 pEntry){
 	int lCount;
 	char * lResult = NULL;
 
-	for (lCount = 0; lCount < (sizeof(mLogNumber)/sizeof(uint8)); lCount++){
-		if (mLogNumber[lCount] == mLog->sEntry[pEntry].sAction){
-			lResult = mLogText[lCount];
-			break;
+	if (pEntry < LOG_NUMBER_ENTRIES){
+		for (lCount = 0; lCount < (sizeof(mLogNumber)/sizeof(uint8)); lCount++){
+			if (mLogNumber[lCount] == mLog->sEntry[pEntry].sAction){
+				lResult = mLogText[lCount];
+				break;
+			}
 		}
-	}
-	if (lResult == NULL){
-		os_sprintf(mDef, "%d", mLog->sEntry[pEntry].sAction);
+		if (lResult == NULL){
+			os_sprintf(mDef, "%d", mLog->sEntry[pEntry].sAction);
+			lResult = mDef;
+		}
+	} else {
+		os_strcpy(mDef, "Invalid index");
 		lResult = mDef;
 	}
 	return lResult;
 }
 
 uint32 ICACHE_FLASH_ATTR xLogTime(uint8 pEntry){
-	return mLog->sEntry[pEntry].sTime;
+	if (pEntry < LOG_NUMBER_ENTRIES){
+		return (uint32)mLog->sEntry[pEntry].sTime;
+	} else {
+		return 0;
+	}
 }
 
 uint32 ICACHE_FLASH_ATTR xLogIp(uint8 pEntry){
-	return mLog->sEntry[pEntry].sIp;
+	if (pEntry < LOG_NUMBER_ENTRIES){
+		return mLog->sEntry[pEntry].sIp;
+	} else {
+		return 0;
+	}
 }
 
 static uint8 ICACHE_FLASH_ATTR sLogHash(){

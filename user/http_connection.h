@@ -10,10 +10,10 @@
 #include <espconn.h>
 
 #define HTTP_MAX_CONN			2
-#define HTTP_BUFFER_SIZE		1024
+#define HTTP_BUFFER_SIZE		2048
 #define MESSAGE_VERB_SIZE		7
 #define MESSAGE_URI_SIZE		256
-#define MESSAGE_SIZE			1024
+#define MESSAGE_SIZE			2048
 
 #define HTTP_STATE_INIT			0
 #define HTTP_STATE_PARSEVERB	1

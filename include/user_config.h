@@ -42,8 +42,14 @@
 //***			- Force option is included in upgrade to load non-accepted version.
 //***version 2.2.1 19-09-2018
 //***			- xSwitchInit moved from eMainSetup to cbMainSystemReady in order to bypass the startup delay: The switch is ON on start and xSwitchInit switches it off!
+//***Version 2.3.0 08-12-2018:
+//***			- The Dutch API is removed
+//***			- Message buffers increased to 2048 bytes (log messages caused overflow)
+//***			- Button setting improved. Changing this setting only had effect after restart. Now immediately.
+//***			- URI /Switch/Button deleted. Button setting only available in /Switch/Setting
+//***			- Upgraded to SDK 3.0.0
 //***************************************************************
-#define VERSION			"v2.2.1"
+#define VERSION			"v2.3.0"
 //***************************************************************
 //***	Memory non-Fota
 //***

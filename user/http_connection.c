@@ -1,5 +1,5 @@
 /*
- * http-verbinding.c
+ * http-connection.c
  *
  */
 #include "http_connection.h"
@@ -10,7 +10,6 @@
 #include <mem.h>
 #include <ip_addr.h>
 #include "events.h"
-#include "message.h"
 #include "util.h"
 
 #define HTTP_PORT	80
@@ -325,7 +324,6 @@ void ICACHE_FLASH_ATTR cbHttpSent(void *pArg) {
 	lConn = (struct espconn *)pArg;
 	lSlot = sHttpFindSlot(lConn);
 	system_os_post(0, EventDisconnect, pArg);
-//	espconn_disconnect(lConn);
 	if (lSlot != NULL) {
 		lSlot->sFree = 1;
 		lSlot->sConn = NULL;

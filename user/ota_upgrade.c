@@ -23,6 +23,9 @@ LOCAL void ICACHE_FLASH_ATTR cbUpgrade(void *arg){
 	lServer = (struct upgrade_server_info *)arg;
 	if(lServer->upgrade_flag == true){
 		system_upgrade_reboot();
+	} else {
+		ets_uart_printf("Upgrade failed!\r\n");
+		gHttpActive = true;
 	}
 
 	os_free(mUpgServer->url);
@@ -59,7 +62,6 @@ static void ICACHE_FLASH_ATTR tcbUpgradeStart(void *arg){
 "Accept: */*\r\n"
 "Cache-Control: no-cache\r\n"
 "\r\n", lImageBin, mVersion, IP2STR(mUpgServer->ip), mUpgServer->port);
-//	"Accept-Encoding: gzip,deflate,sdch\r\n"
 
 	if(system_upgrade_start(mUpgServer) == false){
 		ets_uart_printf("Upgrade did not start!\r\n");

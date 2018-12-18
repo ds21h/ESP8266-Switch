@@ -140,11 +140,6 @@ bool ICACHE_FLASH_ATTR xSettingButton(){
 	return mSetting.sSetting.sButton;
 }
 
-void ICACHE_FLASH_ATTR xSettingButtonSet(bool pButton){
-	mSetting.sSetting.sButton = pButton;
-	sSettingWrite();
-}
-
 void ICACHE_FLASH_ATTR xSettingServerIpDisp(char *pIp){
 	os_sprintf(pIp, IPSTR, IP2STR(&mSetting.sSetting.sServerIP));
 }
