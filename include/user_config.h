@@ -48,8 +48,10 @@
 //***			- Button setting improved. Changing this setting only had effect after restart. Now immediately.
 //***			- URI /Switch/Button deleted. Button setting only available in /Switch/Setting
 //***			- Upgraded to SDK 3.0.0
+//***Version 2.3.1 14-07-2019
+//***			- Added basic auto-off function that switches off after 12 hours
 //***************************************************************
-#define VERSION			"v2.3.0"
+#define VERSION			"v2.3.1"
 //***************************************************************
 //***	Memory non-Fota
 //***

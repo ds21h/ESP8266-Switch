@@ -32,6 +32,9 @@ PUT
 For descriptions of the data see below the version history
 
 
+Version 2.3.1 14-07-2019:
+- Added basic auto-off function that switches off after 12 hours
+
 Version 2.3.0 08-12-2018:
 - The Dutch API is removed
 - Message buffers increased to 2048 bytes (log messages caused overflow)

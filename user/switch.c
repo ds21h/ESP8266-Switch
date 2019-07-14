@@ -4,6 +4,7 @@
 #include <eagle_soc.h>
 #include <gpio.h>
 #include "user_config.h"
+#include "auto_off.h"
 
 #define GPIO2	2
 #define High	1
@@ -15,6 +16,9 @@ void ICACHE_FLASH_ATTR xSwitchSet(bool pValue){
 	mSwitchStatus = pValue;
 
 	GPIO_OUTPUT_SET(GPIO2, mSwitchStatus ? High : Low);
+	if (mSwitchStatus){
+		xInitOff();
+	}
 }
 
 void ICACHE_FLASH_ATTR xSwitchFlip(){
