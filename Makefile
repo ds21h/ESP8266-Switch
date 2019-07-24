@@ -9,9 +9,9 @@ APP		= 1
 #							SPI_MODE = QIO (default) voor AI Cloud
 #							SPI_MODE = DOUT voor merkloze
 #SPI_MODE	= QIO			
-SPI_MODE	= DOUT
+#SPI_MODE	= DOUT
 #SPI_SIZE_MAP	= 2
-ESPPORT		= COM4
+ESPPORT		= COM3
 #ESPBAUD		= 256000
 
 # Basic project settings

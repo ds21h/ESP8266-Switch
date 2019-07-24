@@ -6,17 +6,30 @@
  */
 #include <c_types.h>
 #include <osapi.h>
+#include <stddef.h>
 #include "setting.h"
 #include "user_interface.h"
 #include "user_config.h"
 
-#define SETTING_VERSION		100
+#define SETTING_VERSION		101
 
 struct setting_block{
 	int sVersion;
 	int sHash;
 	int sFail;
 	struct setting sSetting;
+};
+
+struct setting_100{
+	char sSsId[LEN_SSID];
+	char sPassword[LEN_PASSWORD];
+	uint8 sMac[6];
+	char sName[64];
+	char sDescription[128];
+	uint8 sLogLevel;
+	bool sButton;
+	uint8 sServerIP[4];
+	int sServerPort;
 };
 
 static struct setting_block mSetting;
@@ -56,6 +69,31 @@ static void ICACHE_FLASH_ATTR sSettingWrite(){
     }
 }
 
+void ICACHE_FLASH_ATTR sSettingUpgrade100(struct setting pSetting){
+	union Settings {
+		struct setting sSettingNew;
+		struct setting_100 sSettingOld;
+	} lSettings;
+
+	lSettings.sSettingNew = pSetting;
+	os_memset(&mSetting, '\0', sizeof(struct setting_block));
+	mSetting.sFail = 0;
+	mSetting.sVersion = SETTING_VERSION;
+	os_memcpy(mSetting.sSetting.sSsId, lSettings.sSettingOld.sSsId, sizeof(lSettings.sSettingOld.sSsId));
+	os_memcpy(mSetting.sSetting.sPassword, lSettings.sSettingOld.sPassword, sizeof(lSettings.sSettingOld.sPassword));
+	os_memcpy(mSetting.sSetting.sMac, lSettings.sSettingOld.sMac, sizeof(lSettings.sSettingOld.sMac));
+	os_memcpy(mSetting.sSetting.sName, lSettings.sSettingOld.sName, sizeof(lSettings.sSettingOld.sName));
+	os_memcpy(mSetting.sSetting.sDescription, lSettings.sSettingOld.sDescription, sizeof(lSettings.sSettingOld.sDescription));
+	mSetting.sSetting.sLogLevel = lSettings.sSettingOld.sLogLevel;
+	mSetting.sSetting.sButton = lSettings.sSettingOld.sButton;
+	mSetting.sSetting.sAutoOff = AUTO_OFF;
+	os_memcpy(mSetting.sSetting.sServerIP, lSettings.sSettingOld.sServerIP, sizeof(lSettings.sSettingOld.sServerIP));
+	mSetting.sSetting.sServerPort = lSettings.sSettingOld.sServerPort;
+
+
+	sSettingWrite();
+}
+
 static void ICACHE_FLASH_ATTR sSettingRead(){
 	SpiFlashOpResult lResult;
 	int lHash;
@@ -71,7 +109,11 @@ static void ICACHE_FLASH_ATTR sSettingRead(){
             	sSettingReset();
             }
     	} else {
-    		sSettingReset();
+    		if (mSetting.sVersion == 100){
+    			sSettingUpgrade100(mSetting.sSetting);
+    		} else {
+        		sSettingReset();
+    		}
     	}
     }
 }
@@ -138,6 +180,10 @@ uint8 ICACHE_FLASH_ATTR xSettingLogLevel(){
 
 bool ICACHE_FLASH_ATTR xSettingButton(){
 	return mSetting.sSetting.sButton;
+}
+
+uint32 ICACHE_FLASH_ATTR xSettingAutoOff(){
+	return mSetting.sSetting.sAutoOff;
 }
 
 void ICACHE_FLASH_ATTR xSettingServerIpDisp(char *pIp){

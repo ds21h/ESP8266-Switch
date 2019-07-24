@@ -8,6 +8,8 @@
 #include <os_type.h>
 #include "auto_off.h"
 #include "switch.h"
+#include "logger.h"
+#include "setting.h"
 
 static os_timer_t tmCheckOff;
 
@@ -15,7 +17,7 @@ static uint32 mTimeOn = 0;
 
 static void ICACHE_FLASH_ATTR tcbCheckOff(void *arg){
 	if (xSwitchStatus()){
-		if (mTimeOn < 43200){
+		if (mTimeOn < xSettingAutoOff()){
 			mTimeOn++;
 			os_timer_disarm(&tmCheckOff);
 			os_timer_setfn(&tmCheckOff, (os_timer_func_t *)tcbCheckOff, (void *)0);
@@ -23,6 +25,7 @@ static void ICACHE_FLASH_ATTR tcbCheckOff(void *arg){
 		} else {
 			ets_uart_printf("Expired, switch off\r\n");
 			xSwitchSet(false);
+			xLogEntry(LOG_SWITCH_AUTO_OFF, 0);
 		}
 	}
 }

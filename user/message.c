@@ -151,6 +151,9 @@ static int ICACHE_FLASH_ATTR cbMessageFillSetting(struct jsontree_context *pCtx)
     if (os_strncmp(lPad, "button", 6) == 0) {
         jsontree_write_string(pCtx, xSettingButton() ? "on" : "off");
     }
+    if (os_strncmp(lPad, "auto-off", 8) == 0) {
+        jsontree_write_int(pCtx, xSettingAutoOff());
+    }
     if (os_strncmp(lPad, "serverip", 8) == 0) {
     	xSettingServerIpDisp(lWorkStr);
         jsontree_write_string(pCtx, lWorkStr);
@@ -243,6 +246,7 @@ void ICACHE_FLASH_ATTR sMessageSettingReply(char *pMessage){
 	                JSONTREE_PAIR("descr", &mMessageFillSetting_callback),
 	                JSONTREE_PAIR("loglevel", &mMessageFillSetting_callback),
 					JSONTREE_PAIR("button", &mMessageFillSetting_callback),
+					JSONTREE_PAIR("auto-off", &mMessageFillSetting_callback),
 					JSONTREE_PAIR("serverip", &mMessageFillSetting_callback),
 					JSONTREE_PAIR("serverport", &mMessageFillSetting_callback));
 
@@ -576,6 +580,15 @@ static void ICACHE_FLASH_ATTR sMessageSetSetting(char * pMessage){
                             }
                         }
                     }
+            }
+            if (xStrCmpX(lBuffer, "auto-off") == 0) {
+                lType2 = jsonparse_next(&lParseState);
+                if (lType2 == JSON_TYPE_PAIR){
+                    lType2 = jsonparse_next(&lParseState);
+                    if (lType2 == JSON_TYPE_NUMBER){
+                        lSetting->sAutoOff = jsonparse_get_value_as_int(&lParseState);
+                    }
+                }
             }
             if (xStrCmpX(lBuffer, "serverip") == 0){
                 lType2 = jsonparse_next(&lParseState);

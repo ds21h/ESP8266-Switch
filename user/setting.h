@@ -18,6 +18,7 @@ struct setting{
 	char sDescription[128];
 	uint8 sLogLevel;
 	bool sButton;
+	uint32 sAutoOff;
 	uint8 sServerIP[4];
 	int sServerPort;
 };
@@ -34,6 +35,7 @@ void xSettingMac(char *pMac);
 uint8 xSettingLogLevel();
 bool xSettingButton();
 void xSettingButtonSet(bool pButton);
+uint32 xSettingAutoOff();
 
 void xSettingCopy(struct setting *pSetting);
 void xSettingSave(struct setting *pSetting);

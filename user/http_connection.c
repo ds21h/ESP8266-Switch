@@ -146,6 +146,7 @@ static void ICACHE_FLASH_ATTR sHttpProcessVerb(struct HttpConnectionSlot *pSlot,
 		sHttpErrorReply(pSlot, "VERB too long");
 		return;
 	} else {
+		memset(pSlot->sVerb, '\0', sizeof(pSlot->sVerb));
 		os_strncpy(pSlot->sVerb, pLine, lPosBlank[0]);
 	}
 
