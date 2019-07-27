@@ -54,6 +54,7 @@ static void ICACHE_FLASH_ATTR sSettingReset(){
 	mSetting.sVersion = SETTING_VERSION;
 	mSetting.sSetting.sLogLevel = 1;
 	mSetting.sSetting.sButton = true;
+	mSetting.sSetting.sAutoOff = AUTO_OFF;
 }
 
 static void ICACHE_FLASH_ATTR sSettingWrite(){

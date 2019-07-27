@@ -31,6 +31,13 @@ PUT
 	
 For descriptions of the data see below the version history
 
+Version 2.3.2 27-07-2019
+- Complete auto-off function
+	- Make log entry with auto-off
+	- Include auto-off time in settings
+	- Initial auto-off after 43200 seconds (12 hours)
+	- Auto-off value of 0 disables function
+	- Display on time in status
 
 Version 2.3.1 14-07-2019:
 - Added basic auto-off function that switches off after 12 hours

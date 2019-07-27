@@ -50,11 +50,13 @@
 //***			- Upgraded to SDK 3.0.0
 //***Version 2.3.1 14-07-2019
 //***			- Added basic auto-off function that switches off after 12 hours
-//***Version 2.3.2 24-07-2019
+//***Version 2.3.2 27-07-2019
 //***			- Complete auto-off function
 //***				- Make log entry with auto-off
 //***				- Include auto-off time in settings
-//***				- Default auto-off after 43200 seconds (12 hours)
+//***				- Initial auto-off after 43200 seconds (12 hours)
+//***				- Auto-off value of 0 disables function
+//***				- Display on time in status
 //***************************************************************
 #define VERSION			"v2.3.2"
 #define AUTO_OFF		43200
