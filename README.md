@@ -29,6 +29,8 @@ PUT
 		Payload SetSettingData
 		Returns SettingData
 	
+Note: The switch only listens to port 80 (the default HTTP port).
+
 For descriptions of the data see below the version history
 
 Version 2.3.2 27-07-2019
@@ -70,12 +72,13 @@ JSON formats
 SwitchData:
 {
 "result":"OK",							if NOK then the rest is not available
-"version":"v2.2.1",						The version of the software
-"sdk-version":"2.2.1(6ab97e9)",			The version of the SDK
-"date":"Sep 19 2018",					Date of compilation of the software
+"version":"v2.3.2",						The version of the software
+"sdk-version":"3.0.0(d49923c)",			The version of the SDK
+"date":"Jul 27 2019",					Date of compilation of the software
 "name":"Test",							Name of the switch 
 "descr":"Switch for testing",			Description of the switch
 "status":"on",							Current switch status
+"time-on":1225,							Number of seconds the switch is on. When off: 0
 "loglevel":1,							Logging level. 0 = no logging, 1 = non-persistant logging, 2 = persistant logging
 "button":"on"							Button enabled
 }
@@ -90,6 +93,7 @@ SettingData:
 "descr":"Switch for testing",			Description of the switch
 "loglevel":1,							Logging level. 0 = no logging, 1 = non-persistant logging, 2 = persistant logging
 "button":"on",							Button enabled
+"auto-off":43200						Interval in seconds after which the switch goes off
 "serverip":"192.168.2.99",				IP of your upgrade server
 "serverport":8080						Port of your upgrade server
 }
@@ -117,7 +121,7 @@ SetSwitchData:
 }
 
 SetSettingData:
-{										Every element is optional. If not present the setting is left unchanged
+{										Every element is optional. If not present the setting is left unchanged. The sequence is not important.
 "ssid":"YourSsid",						SSID of your network
 "password":"YourPassword",				Password for your network
 "mac":"00:ff:ff:ff:00:01",				MAC of this switch in your network
@@ -125,6 +129,7 @@ SetSettingData:
 "descr":"Switch for testing",			Description of the switch
 "loglevel":1,							Logging level. 0 = no logging, 1 = non-persistant logging, 2 = persistant logging
 "button":"on",							Button enabled
+"auto-off":43200						Interval in seconds after which the switch goes off
 "serverip":"192.168.2.99",				IP of your upgrade server
 "serverport":8080,						Port of your upgrade server
 "reset":"true"							Reset the settings to zero. If present all other settings are ignored!
