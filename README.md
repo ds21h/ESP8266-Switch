@@ -1,45 +1,21 @@
 # ESP8266-Switch
 
 Software to control ESP8266 based switch.
-The switch registers to your wifi network. It can then be adressed by a few REST-services.
+The switch registers to your wifi network. It can then be adressed by a few REST-services.  
+If SSID in setting is not set (value "") the switch starts as AccessPoint with name EspSw_nnnnnnnnnnnn (nnnnnnnnnnnn is the MAC). After connecting using password "EspSwSetup" it listens to IP adress 192.168.4.1 (port 80). You can use the Java desktop application 'EspSettings' to give the settings their proper value.  
+If SSID in setting is set the switch tries to connect to the specified network. If that isn't successfull within 40 seconds the connection attempt stops. The switch needs to be restarted. After 5 consecutive failures all the settings are reset so it wil start the next time as an Access Point. 
 
 If you like this/hate this/have any comments/have any questions/just want to chat about this please leave me a message at ds21h@hotmail.com
 
-Supported services:
-
-GET
-	/Switch
-		Returns SwitchData
-	/Switch/Setting
-		Returns SettingData
-	/Switch/Log
-		Returns LogData starting with the last used index
-	/Switch/Log?Start=nn
-		Returns LogData starting with the given index
-	/Switch/Upgrade?Version=vnn.nn.nn
-		Starts upgrade of the software to the given version
-	/Switch/Upgrade?Version=vnn.nn.nn&Force
-		Starts upgrade of the software to the given version ignoring error situations (already that version, to lower version)
-	
-PUT
-	/Switch
-		Payload SetSwitchData
-		Returns SwitchData
-	/Switch/Setting
-		Payload SetSettingData
-		Returns SettingData
-	
-Note: The switch only listens to port 80 (the default HTTP port).
-
-For descriptions of the data see below the version history
+For descriptions of the supported services and messages see file MessageFormat.txt
 
 Version 2.3.2 27-07-2019
-- Complete auto-off function
-	- Make log entry with auto-off
-	- Include auto-off time in settings
-	- Initial auto-off after 43200 seconds (12 hours)
-	- Auto-off value of 0 disables function
-	- Display on time in status
+- Complete auto-off function  
+	- Make log entry with auto-off  
+	- Include auto-off time in settings  
+	- Initial auto-off after 43200 seconds (12 hours)  
+	- Auto-off value of 0 disables function  
+	- Display on time in status  
 
 Version 2.3.1 14-07-2019:
 - Added basic auto-off function that switches off after 12 hours
@@ -67,70 +43,3 @@ Version 2.1:
   - The URI is now case-independent.
   - The software is the same for every switch. All settings are seperately stored. If the settings are not yet there the ESP8266 boots as an Access Point using the name EspSw-[mac]. It can then be connected to using the password EspSwSetup in order to initialise the settings. For this a Java desktop program is available (EspSettings).
   - The software is now basically capable of updating over the air (FOTA). For that an extra URI is implemented requesting an update. For the update itself a server is required. A Javax version is available (EspServer).
-  
-JSON formats
-SwitchData:
-{
-"result":"OK",							if NOK then the rest is not available
-"version":"v2.3.2",						The version of the software
-"sdk-version":"3.0.0(d49923c)",			The version of the SDK
-"date":"Jul 27 2019",					Date of compilation of the software
-"name":"Test",							Name of the switch 
-"descr":"Switch for testing",			Description of the switch
-"status":"on",							Current switch status
-"time-on":1225,							Number of seconds the switch is on. When off: 0
-"loglevel":1,							Logging level. 0 = no logging, 1 = non-persistant logging, 2 = persistant logging
-"button":"on"							Button enabled
-}
-
-SettingData:
-{
-"result":"OK",							if NOK then the rest is not available
-"ssid":"YourSsid",						SSID of your network
-"password":"YourPassword",				Password for your network
-"mac":"00:ff:ff:ff:00:01",				MAC of this switch in your network
-"name":"Test",							Name of the switch
-"descr":"Switch for testing",			Description of the switch
-"loglevel":1,							Logging level. 0 = no logging, 1 = non-persistant logging, 2 = persistant logging
-"button":"on",							Button enabled
-"auto-off":43200						Interval in seconds after which the switch goes off
-"serverip":"192.168.2.99",				IP of your upgrade server
-"serverport":8080						Port of your upgrade server
-}
-
-LogData:
-{
-"result":"OK",							if NOK then the rest is not available
-"number":250,							Number of log entries (cyclic log)
-"current":66,							The current (= next to use) entry
-"time":"2018-12-08 15:59:09",			Time of the request (always in UTC, so no time zone or DST)
-"log":[									10 log entries
-{
-"entry":65,								entry index
-"action":"GET Switch",					Logged action
-"time":"2018-12-08 15:58:48",			Timestamp of action in UTC. Note: If the switch has not yet synchronised time this reads 1970-01-01 00:00:00 -> Unix time start.
-"ip":"192.168.2.1"						The IP addres that requested the action
-},
-.....
-]
-}
-
-SetSwitchData:
-{
-"status":"on"							To switch on (off to switch off)
-}
-
-SetSettingData:
-{										Every element is optional. If not present the setting is left unchanged. The sequence is not important.
-"ssid":"YourSsid",						SSID of your network
-"password":"YourPassword",				Password for your network
-"mac":"00:ff:ff:ff:00:01",				MAC of this switch in your network
-"name":"Test",							Name of the switch
-"descr":"Switch for testing",			Description of the switch
-"loglevel":1,							Logging level. 0 = no logging, 1 = non-persistant logging, 2 = persistant logging
-"button":"on",							Button enabled
-"auto-off":43200						Interval in seconds after which the switch goes off
-"serverip":"192.168.2.99",				IP of your upgrade server
-"serverport":8080,						Port of your upgrade server
-"reset":"true"							Reset the settings to zero. If present all other settings are ignored!
-}

@@ -57,6 +57,8 @@ static int mStart;
 static char mVersion[12];
 static bool mForce;
 
+static long mAutoOff = -1;
+
 static int ICACHE_FLASH_ATTR cbMessageFillReply(struct jsontree_context *pCtx);
 LOCAL int ICACHE_FLASH_ATTR cbMessageFillLogEntry(struct jsontree_context *pCtx);
 
@@ -77,7 +79,7 @@ static uint8 mEntryNumber;
 
 static int ICACHE_FLASH_ATTR cbMessageFillReply(struct jsontree_context *pCtx) {
 	static char *lTagName[] = { "result", "version", "sdk-version", "date",
-			"name", "descr", "status", "time-on", "loglevel", "button", "text", "ssid", "password", "mac", "auto-off", "serverip", "serverport", "number", "current", "time", "real-time-on" };
+			"name", "descr", "status", "time-on", "loglevel", "button", "text", "ssid", "password", "mac", "auto-off", "serverip", "serverport", "number", "current", "time"};
 	const char *lPad;
 	char lWorkStr[17];
 	uint32 lTime;
@@ -158,110 +160,11 @@ static int ICACHE_FLASH_ATTR cbMessageFillReply(struct jsontree_context *pCtx) {
 		xTimeString(lTime, lTimeStr, sizeof(lTimeStr));
 		jsontree_write_string(pCtx, lTimeStr);
 		break;
-	case 20:
-		jsontree_write_int(pCtx, xTimeOnReal());
-		break;
 	default:
 		break;
 	}
 	return 0;
 }
-/*
-static int ICACHE_FLASH_ATTR cbMessageFillSetting(struct jsontree_context *pCtx) {
-	static char *lTagName[] =
-			{ "result", "ssid", "password", "mac", "name", "descr", "loglevel",
-					"button", "auto-off", "serverip", "serverport" };
-	const char *lPad;
-	char lWorkStr[17];
-	int lTag;
-	int lNumber;
-
-	lPad = jsontree_path_name(pCtx, pCtx->depth - 1);
-
-	lNumber = sizeof(lTagName) / sizeof(lTagName[0]);
-	for (lTag = 0; lTag < lNumber; lTag++) {
-		if (xStrnCmpX(lPad, lTagName[lTag], os_strlen(lTagName[lTag])) == 0) {
-			break;
-		}
-	}
-	switch (lTag) {
-	case 0:
-		jsontree_write_string(pCtx, mProcessOk ? "OK" : "NOK");
-		break;
-	case 1:
-		jsontree_write_string(pCtx, xSettingSsId());
-		break;
-	case 2:
-		jsontree_write_string(pCtx, xSettingPassword());
-		break;
-	case 3:
-		xSettingMac(lWorkStr);
-		jsontree_write_string(pCtx, lWorkStr);
-		break;
-	case 4:
-		jsontree_write_string(pCtx, xSettingName());
-		break;
-	case 5:
-		jsontree_write_string(pCtx, xSettingDescription());
-		break;
-	case 6:
-		jsontree_write_int(pCtx, xSettingLogLevel());
-		break;
-	case 7:
-		jsontree_write_string(pCtx, xSettingButton() ? "on" : "off");
-		break;
-	case 8:
-		jsontree_write_int(pCtx, xSettingAutoOff());
-		break;
-	case 9:
-		xSettingServerIpDisp(lWorkStr);
-		jsontree_write_string(pCtx, lWorkStr);
-		break;
-	case 10:
-		jsontree_write_int(pCtx, xSettingServerPort());
-		break;
-	default:
-		break;
-	}
-	return 0;
-} */
-/*
-LOCAL int ICACHE_FLASH_ATTR cbMessageFillLog(struct jsontree_context *pCtx) {
-	static char *lTagName[] = { "result", "number", "current", "time" };
-	const char *lPad;
-	uint32 lTime;
-	char lTimeStr[20];
-	int lTag;
-	int lNumber;
-
-	lPad = jsontree_path_name(pCtx, pCtx->depth - 1);
-
-	lNumber = sizeof(lTagName) / sizeof(lTagName[0]);
-	for (lTag = 0; lTag < lNumber; lTag++) {
-		if (xStrnCmpX(lPad, lTagName[lTag], os_strlen(lTagName[lTag])) == 0) {
-			break;
-		}
-	}
-	switch (lTag) {
-	case 0:
-		jsontree_write_string(pCtx, mProcessOk ? "OK" : "NOK");
-		break;
-	case 1:
-		jsontree_write_int(pCtx, xLogNumber());
-		break;
-	case 2:
-		jsontree_write_int(pCtx, xLogCurrent());
-		break;
-	case 3:
-		lTime = xTimeNow();
-		xTimeString(lTime, lTimeStr, sizeof(lTimeStr));
-		jsontree_write_string(pCtx, lTimeStr);
-		break;
-	default:
-		break;
-	}
-	return 0;
-} */
 
 LOCAL int ICACHE_FLASH_ATTR cbMessageFillLogEntry(struct jsontree_context *pCtx) {
 	static char *lTagName[] = { "entry", "action", "time", "ip" };
@@ -367,7 +270,6 @@ void ICACHE_FLASH_ATTR sMessageReply(char *pMessage) {
 			JSONTREE_PAIR("descr", &mMessageFillReply_callback),
 			JSONTREE_PAIR("status", &mMessageFillReply_callback),
 			JSONTREE_PAIR("time-on", &mMessageFillReply_callback),
-			JSONTREE_PAIR("real-time-on", &mMessageFillReply_callback),
 			JSONTREE_PAIR("loglevel", &mMessageFillReply_callback),
 			JSONTREE_PAIR("button", &mMessageFillReply_callback));
 
@@ -468,6 +370,7 @@ int ICACHE_FLASH_ATTR sMessageActionParse(char *pMessage) {
 	enum action lAction;
 
 	lAction = ActionNone;
+	mAutoOff = -1;
 	jsonparse_setup(&lParseState, pMessage, os_strlen(pMessage));
 	while ((lType = jsonparse_next(&lParseState)) != 0) {
 		if (lType == JSON_TYPE_PAIR_NAME) {
@@ -490,7 +393,15 @@ int ICACHE_FLASH_ATTR sMessageActionParse(char *pMessage) {
 								lAction = ActionNone;
 							}
 						}
-//                        }
+					}
+				}
+			}
+			if (xStrCmpX(lBuffer, "auto-off") == 0) {
+				lType2 = jsonparse_next(&lParseState);
+				if (lType2 == JSON_TYPE_PAIR) {
+					lType2 = jsonparse_next(&lParseState);
+					if (lType2 == JSON_TYPE_NUMBER) {
+						mAutoOff = jsonparse_get_value_as_int(&lParseState);
 					}
 				}
 			}
@@ -1138,14 +1049,14 @@ void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot) {
 			case UriBasis:
 				lAction = sMessageActionParse(pSlot->sBuffer);
 				if (lAction == ActionOn) {
-					xSwitchSet(true);
+					xSwitchOn(mAutoOff);
 					mProcessOk = true;
 					sMessageReply(pSlot->sAnswer);
 					pSlot->sProcessResult = HTTP_OK;
 					xLogEntry(LOG_PUT_SWITCH_ON, pSlot->sRemoteIp);
 				} else {
 					if (lAction == ActionOff) {
-						xSwitchSet(false);
+						xSwitchOff();
 						mProcessOk = true;
 						sMessageReply(pSlot->sAnswer);
 						pSlot->sProcessResult = HTTP_OK;

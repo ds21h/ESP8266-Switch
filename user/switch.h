@@ -11,8 +11,9 @@
 #include <c_types.h>
 
 void xSwitchInit();
+void xSwitchOn(long pAutoOff);
+void xSwitchOff();
 void xSwitchFlip();
 bool xSwitchStatus();
-void xSwitchSet(bool pValue);
 
 #endif /* USER_SWITCH_H_ */

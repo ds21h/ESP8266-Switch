@@ -8,7 +8,7 @@
 #ifndef USER_AUTO_OFF_H_
 #define USER_AUTO_OFF_H_
 
-void xInitOff();
+void xInitOff(long pAutoOff);
 uint32 xTimeOn();
 uint32 xTimeOnReal();
 
