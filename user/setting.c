@@ -11,7 +11,7 @@
 #include "user_interface.h"
 #include "user_config.h"
 
-#define SETTING_VERSION		101
+#define SETTING_VERSION		200
 
 struct setting_block{
 	int sVersion;
@@ -28,6 +28,19 @@ struct setting_100{
 	char sDescription[128];
 	uint8 sLogLevel;
 	bool sButton;
+	uint8 sServerIP[4];
+	int sServerPort;
+};
+
+struct setting_101{
+	char sSsId[LEN_SSID];
+	char sPassword[LEN_PASSWORD];
+	uint8 sMac[6];
+	char sName[64];
+	char sDescription[128];
+	uint8 sLogLevel;
+	bool sButton;
+	uint32 sAutoOff;
 	uint8 sServerIP[4];
 	int sServerPort;
 };
@@ -52,6 +65,7 @@ static void ICACHE_FLASH_ATTR sSettingReset(){
 	os_memset(&mSetting, '\0', sizeof(struct setting_block));
 	mSetting.sFail = 0;
 	mSetting.sVersion = SETTING_VERSION;
+	mSetting.sSetting.sSwitchModel = SWITCH_MODEL;
 	mSetting.sSetting.sLogLevel = 1;
 	mSetting.sSetting.sButton = true;
 	mSetting.sSetting.sAutoOff = AUTO_OFF;
@@ -70,6 +84,7 @@ static void ICACHE_FLASH_ATTR sSettingWrite(){
     }
 }
 
+/*
 void ICACHE_FLASH_ATTR sSettingUpgrade100(struct setting pSetting){
 	union Settings {
 		struct setting sSettingNew;
@@ -85,11 +100,52 @@ void ICACHE_FLASH_ATTR sSettingUpgrade100(struct setting pSetting){
 	os_memcpy(mSetting.sSetting.sMac, lSettings.sSettingOld.sMac, sizeof(lSettings.sSettingOld.sMac));
 	os_memcpy(mSetting.sSetting.sName, lSettings.sSettingOld.sName, sizeof(lSettings.sSettingOld.sName));
 	os_memcpy(mSetting.sSetting.sDescription, lSettings.sSettingOld.sDescription, sizeof(lSettings.sSettingOld.sDescription));
+	mSetting.sSetting.sSwitchPort = SWITCH_PORT;
 	mSetting.sSetting.sLogLevel = lSettings.sSettingOld.sLogLevel;
 	mSetting.sSetting.sButton = lSettings.sSettingOld.sButton;
 	mSetting.sSetting.sAutoOff = AUTO_OFF;
 	os_memcpy(mSetting.sSetting.sServerIP, lSettings.sSettingOld.sServerIP, sizeof(lSettings.sSettingOld.sServerIP));
 	mSetting.sSetting.sServerPort = lSettings.sSettingOld.sServerPort;
+
+
+	sSettingWrite();
+} */
+
+void ICACHE_FLASH_ATTR sSettingUpgrade(int pVersion, struct setting pSetting){
+	union Settings {
+		struct setting sSettingNew;
+		struct setting_100 sSetting100;
+		struct setting_101 sSetting101;
+	} lSettings;
+
+	lSettings.sSettingNew = pSetting;
+
+	sSettingReset();
+	switch (pVersion){
+	case 100:
+		os_memcpy(mSetting.sSetting.sSsId, lSettings.sSetting100.sSsId, sizeof(lSettings.sSetting100.sSsId));
+		os_memcpy(mSetting.sSetting.sPassword, lSettings.sSetting100.sPassword, sizeof(lSettings.sSetting100.sPassword));
+		os_memcpy(mSetting.sSetting.sMac, lSettings.sSetting100.sMac, sizeof(lSettings.sSetting100.sMac));
+		os_memcpy(mSetting.sSetting.sName, lSettings.sSetting100.sName, sizeof(lSettings.sSetting100.sName));
+		os_memcpy(mSetting.sSetting.sDescription, lSettings.sSetting100.sDescription, sizeof(lSettings.sSetting100.sDescription));
+		mSetting.sSetting.sLogLevel = lSettings.sSetting100.sLogLevel;
+		mSetting.sSetting.sButton = lSettings.sSetting100.sButton;
+		os_memcpy(mSetting.sSetting.sServerIP, lSettings.sSetting100.sServerIP, sizeof(lSettings.sSetting100.sServerIP));
+		mSetting.sSetting.sServerPort = lSettings.sSetting100.sServerPort;
+		break;
+	case 101:
+		os_memcpy(mSetting.sSetting.sSsId, lSettings.sSetting101.sSsId, sizeof(lSettings.sSetting101.sSsId));
+		os_memcpy(mSetting.sSetting.sPassword, lSettings.sSetting101.sPassword, sizeof(lSettings.sSetting101.sPassword));
+		os_memcpy(mSetting.sSetting.sMac, lSettings.sSetting101.sMac, sizeof(lSettings.sSetting101.sMac));
+		os_memcpy(mSetting.sSetting.sName, lSettings.sSetting101.sName, sizeof(lSettings.sSetting101.sName));
+		os_memcpy(mSetting.sSetting.sDescription, lSettings.sSetting101.sDescription, sizeof(lSettings.sSetting101.sDescription));
+		mSetting.sSetting.sLogLevel = lSettings.sSetting101.sLogLevel;
+		mSetting.sSetting.sButton = lSettings.sSetting101.sButton;
+		mSetting.sSetting.sAutoOff = lSettings.sSetting101.sAutoOff;
+		os_memcpy(mSetting.sSetting.sServerIP, lSettings.sSetting101.sServerIP, sizeof(lSettings.sSetting101.sServerIP));
+		mSetting.sSetting.sServerPort = lSettings.sSetting101.sServerPort;
+		break;
+	}
 
 
 	sSettingWrite();
@@ -110,11 +166,7 @@ static void ICACHE_FLASH_ATTR sSettingRead(){
             	sSettingReset();
             }
     	} else {
-    		if (mSetting.sVersion == 100){
-    			sSettingUpgrade100(mSetting.sSetting);
-    		} else {
-        		sSettingReset();
-    		}
+    		sSettingUpgrade(mSetting.sVersion, mSetting.sSetting);
     	}
     }
 }
@@ -154,6 +206,10 @@ const char* ICACHE_FLASH_ATTR xSettingName(){
 
 const char* ICACHE_FLASH_ATTR xSettingDescription(){
 	return mSetting.sSetting.sDescription;
+}
+
+uint8 ICACHE_FLASH_ATTR xSettingSwitchModel(){
+	return mSetting.sSetting.sSwitchModel;
 }
 
 const char* ICACHE_FLASH_ATTR xSettingMacAddr(){

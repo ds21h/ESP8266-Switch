@@ -16,6 +16,7 @@ struct setting{
 	uint8 sMac[6];
 	char sName[64];
 	char sDescription[128];
+	uint8 sSwitchModel;
 	uint8 sLogLevel;
 	bool sButton;
 	uint32 sAutoOff;
@@ -29,6 +30,7 @@ const char* xSettingSsId();
 const char* xSettingPassword();
 const char* xSettingName();
 const char* xSettingDescription();
+uint8 xSettingSwitchModel();
 bool xSettingMacAddrPres();
 const char* xSettingMacAddr();
 void xSettingMac(char *pMac);

@@ -79,7 +79,7 @@ static uint8 mEntryNumber;
 
 static int ICACHE_FLASH_ATTR cbMessageFillReply(struct jsontree_context *pCtx) {
 	static char *lTagName[] = { "result", "version", "sdk-version", "date",
-			"name", "descr", "status", "time-on", "loglevel", "button", "text", "ssid", "password", "mac", "auto-off", "serverip", "serverport", "number", "current", "time"};
+			"name", "descr", "model", "status", "time-on", "loglevel", "button", "text", "ssid", "password", "mac", "auto-off", "serverip", "serverport", "number", "current", "time"};
 	const char *lPad;
 	char lWorkStr[17];
 	uint32 lTime;
@@ -115,47 +115,50 @@ static int ICACHE_FLASH_ATTR cbMessageFillReply(struct jsontree_context *pCtx) {
 		jsontree_write_string(pCtx, xSettingDescription());
 		break;
 	case 6:
-		jsontree_write_string(pCtx, xSwitchStatus() ? "on" : "off");
+		jsontree_write_int(pCtx, xSettingSwitchModel());
 		break;
 	case 7:
-		jsontree_write_int(pCtx, xTimeOn());
+		jsontree_write_string(pCtx, xSwitchStatus() ? "on" : "off");
 		break;
 	case 8:
-		jsontree_write_int(pCtx, xSettingLogLevel());
+		jsontree_write_int(pCtx, xTimeOn());
 		break;
 	case 9:
-		jsontree_write_string(pCtx, xSettingButton() ? "on" : "off");
+		jsontree_write_int(pCtx, xSettingLogLevel());
 		break;
 	case 10:
-		jsontree_write_string(pCtx, mText);
+		jsontree_write_string(pCtx, xSettingButton() ? "on" : "off");
 		break;
 	case 11:
-		jsontree_write_string(pCtx, xSettingSsId());
+		jsontree_write_string(pCtx, mText);
 		break;
 	case 12:
-		jsontree_write_string(pCtx, xSettingPassword());
+		jsontree_write_string(pCtx, xSettingSsId());
 		break;
 	case 13:
+		jsontree_write_string(pCtx, xSettingPassword());
+		break;
+	case 14:
 		xSettingMac(lWorkStr);
 		jsontree_write_string(pCtx, lWorkStr);
 		break;
-	case 14:
+	case 15:
 		jsontree_write_int(pCtx, xSettingAutoOff());
 		break;
-	case 15:
+	case 16:
 		xSettingServerIpDisp(lWorkStr);
 		jsontree_write_string(pCtx, lWorkStr);
 		break;
-	case 16:
+	case 17:
 		jsontree_write_int(pCtx, xSettingServerPort());
 		break;
-	case 17:
+	case 18:
 		jsontree_write_int(pCtx, xLogNumber());
 		break;
-	case 18:
+	case 19:
 		jsontree_write_int(pCtx, xLogCurrent());
 		break;
-	case 19:
+	case 20:
 		lTime = xTimeNow();
 		xTimeString(lTime, lTimeStr, sizeof(lTimeStr));
 		jsontree_write_string(pCtx, lTimeStr);
@@ -236,6 +239,7 @@ void ICACHE_FLASH_ATTR sMessageSettingReply(char *pMessage) {
 			JSONTREE_PAIR("mac", &mMessageFillReply_callback),
 			JSONTREE_PAIR("name", &mMessageFillReply_callback),
 			JSONTREE_PAIR("descr", &mMessageFillReply_callback),
+			JSONTREE_PAIR("model", &mMessageFillReply_callback),
 			JSONTREE_PAIR("loglevel", &mMessageFillReply_callback),
 			JSONTREE_PAIR("button", &mMessageFillReply_callback),
 			JSONTREE_PAIR("auto-off", &mMessageFillReply_callback),
@@ -268,6 +272,7 @@ void ICACHE_FLASH_ATTR sMessageReply(char *pMessage) {
 			JSONTREE_PAIR("date", &mMessageFillReply_callback),
 			JSONTREE_PAIR("name", &mMessageFillReply_callback),
 			JSONTREE_PAIR("descr", &mMessageFillReply_callback),
+			JSONTREE_PAIR("model", &mMessageFillReply_callback),
 			JSONTREE_PAIR("status", &mMessageFillReply_callback),
 			JSONTREE_PAIR("time-on", &mMessageFillReply_callback),
 			JSONTREE_PAIR("loglevel", &mMessageFillReply_callback),
@@ -568,6 +573,16 @@ static void ICACHE_FLASH_ATTR sMessageSetSetting(char *pMessage) {
 						jsonparse_copy_value(&lParseState,
 								lSetting->sDescription,
 								sizeof(lSetting->sDescription));
+					}
+				}
+			}
+			if (xStrCmpX(lBuffer, "model") == 0) {
+				lType2 = jsonparse_next(&lParseState);
+				if (lType2 == JSON_TYPE_PAIR) {
+					lType2 = jsonparse_next(&lParseState);
+					if (lType2 == JSON_TYPE_NUMBER) {
+						lSetting->sSwitchModel = (uint8)jsonparse_get_value_as_int(
+								&lParseState);
 					}
 				}
 			}

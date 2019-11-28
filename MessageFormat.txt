@@ -1,3 +1,9 @@
+Supported Switch Models:
+1	Switch port GPIO2, on is high
+	Button port GPIO0, action is low
+2	Switch port GPIO0, on is low
+	Button port GPIO2, action is low
+
 Supported services:
 
 GET 
@@ -27,6 +33,7 @@ SwitchData:
 "date":"Jul 27 2019",					Date of compilation of the software
 "name":"Test",							Name of the switch 
 "descr":"Switch for testing",			Description of the switch
+"model":1								Model of the Switch board
 "status":"on",							Current switch status
 "time-on":1225,							Number of seconds the switch is on. When off: 0
 "loglevel":1,							Logging level. 0 = no logging, 1 = non-persistant logging, 2 = persistant logging
@@ -41,6 +48,7 @@ SettingData:
 "mac":"00:ff:ff:ff:00:01",				MAC of this switch in your network
 "name":"Test",							Name of the switch
 "descr":"Switch for testing",			Description of the switch
+"model":1								Model of the Switch board
 "loglevel":1,							Logging level. 0 = no logging, 1 = non-persistant logging, 2 = persistant logging
 "button":"on",							Button enabled
 "auto-off":43200						Interval in seconds after which the switch goes off
@@ -81,6 +89,7 @@ SetSettingData:
 "mac":"00:ff:ff:ff:00:01",				MAC of this switch in your network
 "name":"Test",							Name of the switch
 "descr":"Switch for testing",			Description of the switch
+"model":1								Model of the Switch board
 "loglevel":1,							Logging level. 0 = no logging, 1 = non-persistant logging, 2 = persistant logging
 "button":"on",							Button enabled
 "auto-off":43200						Interval in seconds after which the switch goes off

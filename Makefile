@@ -3,7 +3,7 @@ include	../../settings.mk
 
 # Individual project settings (Optional)
 BOOT		= new
-APP		= 1
+APP		= 2
 #SPI_SPEED	= 40
 # 							Let op!
 #							SPI_MODE = QIO (default) voor AI Cloud

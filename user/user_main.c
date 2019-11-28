@@ -233,6 +233,9 @@ void cbMainWifiEvent(System_Event_t *pEvent) {
 }
 
 void ICACHE_FLASH_ATTR cbMainSystemReady(){
+	// SwitchInit must be as quick as possible in order to keep startup flash short
+	// SwitchInit depends on SettingInit, so that has to execute first
+	xSettingInit();
 	xSwitchInit();
 	os_timer_disarm(&tmStartCounter);
 	os_timer_setfn(&tmStartCounter, (os_timer_func_t *)tcbMainDeferredStart, (void *)0);
@@ -301,7 +304,7 @@ static void ICACHE_FLASH_ATTR sMainSetupWifiApMode()
 
 void ICACHE_FLASH_ATTR eMainSetup()
 {
-	xSettingInit();
+//	xSettingInit();
 	xLogInit();
 	xButtonInit();
 	if(wifi_station_get_auto_connect() == 1){

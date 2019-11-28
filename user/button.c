@@ -25,6 +25,7 @@ static os_timer_t tmButtonDebounce;
 static int mDebounceCount = DEBOUNCE_MAX;
 static int mDebounceHit = 0;
 static int mLastStatus = -1;
+static int mButtonPort;
 
 static void ICACHE_FLASH_ATTR sButtonOn(int pDelay){
 	os_timer_disarm(&tmButtonDebounce);
@@ -47,7 +48,7 @@ static void ICACHE_FLASH_ATTR tcbButtonDebounceTest(){
 	lReady = false;
 	if (mDebounceCount < DEBOUNCE_MAX){
 		mDebounceCount ++;
-		lStatus = GPIO_INPUT_GET(0);
+		lStatus = GPIO_INPUT_GET(mButtonPort);
 		if (lStatus == 0){
 			mDebounceHit++;
 			if (mDebounceHit > DEBOUNCE_MIN){
@@ -74,7 +75,7 @@ static void ICACHE_FLASH_ATTR tcbButtonDebounceTest(){
 static void ICACHE_FLASH_ATTR tcbButtonPoll(){
 	int lStatus;
 
-	lStatus = GPIO_INPUT_GET(0);
+	lStatus = GPIO_INPUT_GET(mButtonPort);
 	if (lStatus == mLastStatus){
 		sButtonOn(POLL_INTERVAL);
 	} else {
@@ -99,9 +100,16 @@ void ICACHE_FLASH_ATTR xButtonSet(){
 
 void ICACHE_FLASH_ATTR xButtonInit(){
 	ETS_GPIO_INTR_DISABLE();
-	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
-	GPIO_DIS_OUTPUT(0);
-	PIN_PULLUP_EN(PERIPHS_IO_MUX_GPIO0_U);
+	if (xSettingSwitchModel() == 1){
+		PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0);
+		PIN_PULLUP_EN(PERIPHS_IO_MUX_GPIO0_U);
+		mButtonPort = 0;
+	} else {
+		PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO2_U, FUNC_GPIO2);
+		PIN_PULLUP_EN(PERIPHS_IO_MUX_GPIO2_U);
+		mButtonPort = 2;
+	}
+	GPIO_DIS_OUTPUT(mButtonPort);
 	if (xSettingButton()){
 		sButtonOn(POLL_INTERVAL);
 	}
