@@ -57,7 +57,7 @@
 //***				- Initial auto-off after 43200 seconds (12 hours)
 //***				- Auto-off value of 0 disables function
 //***				- Display on-time in status
-//***Version 2.4 01-12-2019
+//***Version 2.4.0 01-12-2019
 //***			- Support for different Switch boards added
 //***				- Setting SwitchModel added (see MessageFormat.txt for supported models)
 //***				- switch.c and button.c altered to handle this

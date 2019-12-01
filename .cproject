@@ -89,13 +89,15 @@
                         					
                     </folderInfo>
                     					
+                    <fileInfo id="cdt.managedbuild.toolchain.gnu.mingw.base.1135534147.1926331735" name="Board model 2 - ESP-01S Relay v4.0.pdf" rcbsApplicability="disable" resourcePath="Board model 2 - ESP-01S Relay v4.0.pdf" toolsToInvoke=""/>
+                    					
                     <fileInfo id="cdt.managedbuild.toolchain.gnu.mingw.base.1135534147.117262625" name="MessageFormat.txt" rcbsApplicability="disable" resourcePath="MessageFormat.txt" toolsToInvoke=""/>
                     					
                     <fileInfo id="cdt.managedbuild.toolchain.gnu.mingw.base.1135534147.182821323" name="README.md" rcbsApplicability="disable" resourcePath="README.md" toolsToInvoke=""/>
                     					
                     <sourceEntries>
                         						
-                        <entry excluding="README.md|MessageFormat.txt" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+                        <entry excluding="Board model 2 - ESP-01S Relay v4.0.pdf|README.md|MessageFormat.txt" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
                         					
                     </sourceEntries>
                     				

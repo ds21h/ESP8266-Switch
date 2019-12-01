@@ -9,7 +9,7 @@ If you like this/hate this/have any comments/have any questions/just want to cha
 
 For descriptions of the supported services and messages see file MessageFormat.txt
 
-Version 2.4 01-12-2019
+Version 2.4.0 01-12-2019
 - Support for different Switch boards added
 	- Setting SwitchModel added (see MessageFormat.txt for supported models)
 	- switch.c and button.c altered to handle this
