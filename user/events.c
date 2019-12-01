@@ -36,6 +36,9 @@ static void ICACHE_FLASH_ATTR cbEventQueue0(os_event_t *pEvent) {
     case EventStartUpgrade:
 		eOtaUpgrade(pEvent->par);
     	break;
+    case EventRestart:
+		eRestart();
+    	break;
     }
 }
 

@@ -39,6 +39,7 @@ enum segment{
 	SegmentLog,
 	SegmentSetting,
 	SegmentUpgrade,
+	SegmentRestart,
 	SegmentEnd,
 	SegmentData,
 	SegmentError,
@@ -46,7 +47,7 @@ enum segment{
 };
 
 enum uri {
-	UriBasis, UriLog, UriLogPar, UriSetting, UriUpgrade, UriFavicon, UriError
+	UriBasis, UriLog, UriLogPar, UriSetting, UriUpgrade, UriRestart, UriFavicon, UriError
 };
 
 enum action {
@@ -780,6 +781,11 @@ static enum segment ICACHE_FLASH_ATTR sMessageUriSegment(char **pUriPtr) {
 				lResult = SegmentUpgrade;
 			}
 		}
+		if (lLength == 7) {
+			if (xStrnCmpX(lStart, "restart", lLength) == 0) {
+				lResult = SegmentRestart;
+			}
+		}
 		if (lLength >= 7) {
 			if (xStrnCmpX(lStart, "favicon", 7) == 0) {
 				lResult = SegmentFavicon;
@@ -847,6 +853,14 @@ static enum uri ICACHE_FLASH_ATTR sMessageTestUriSwitch(char **pUriPtr) {
 			} else {
 				lUriType = UriError;
 			}
+		}
+		break;
+	case SegmentRestart:
+		lSegmentType = sMessageUriSegment(pUriPtr);
+		if (lSegmentType == SegmentEnd) {
+			lUriType = UriRestart;
+		} else {
+			lUriType = UriError;
 		}
 		break;
 	default:
@@ -972,8 +986,10 @@ void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot) {
 	int lStart;
 	enum upgradetestresult lTestResult;
 	bool lUpgrade;
+	bool lRestart;
 
 	lUpgrade = false;
+	lRestart = false;
 	if (os_strcmp(pSlot->sVerb, "GET") == 0) {
 		lUriType = sMessageTestUri(pSlot->sUri);
 		switch (lUriType) {
@@ -1047,6 +1063,15 @@ void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot) {
 				pSlot->sProcessResult = HTTP_OK;
 			}
 			break;
+		case UriRestart:
+			ets_uart_printf("Restart\r\n");
+			mProcessOk = true;
+			os_sprintf(mText, "Restart requested");
+			sMessageErrorReply(pSlot->sAnswer);
+			pSlot->sProcessResult = HTTP_OK;
+			xLogEntry(LOG_RESTART, pSlot->sRemoteIp.addr);
+			lRestart = true;
+			break;
 		default:
 			mProcessOk = false;
 			os_strcpy(mText, "URI Invalid");
@@ -1113,6 +1138,9 @@ void ICACHE_FLASH_ATTR eMessageProcess(struct HttpConnectionSlot *pSlot) {
 	system_os_post(0, EventMessageProcessed, pSlot);
 	if (lUpgrade) {
 		system_os_post(0, EventStartUpgrade, mVersion);
+	}
+	if (lRestart) {
+		system_os_post(0, EventRestart, mVersion);
 	}
 }
 

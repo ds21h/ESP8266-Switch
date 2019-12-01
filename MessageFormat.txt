@@ -13,6 +13,7 @@ GET
 - /Switch/Log?Start=nn					Returns LogData starting with the given index
 - /Switch/Upgrade?Version=vnn.nn.nn		Starts upgrade of the software to the given version
 - /Switch/Upgrade?Version=vnn.nn.nn&Force	Starts upgrade of the software to the given version ignoring error situations (already that version, to lower version)
+- /Switch/Restart						Causes a restart of the switch. Necessary after changing LAN settings, Board model or MAC (MAC even requires two restarts)
 	
 PUT  
 - /Switch								Payload SetSwitchData  
@@ -28,9 +29,9 @@ JSON formats
 SwitchData:
 {
 "result":"OK",							if NOK then the rest is not available
-"version":"v2.3.2",						The version of the software
+"version":"v2.4.0",						The version of the software
 "sdk-version":"3.0.0(d49923c)",			The version of the SDK
-"date":"Jul 27 2019",					Date of compilation of the software
+"date":"Dec 1 2019",					Date of compilation of the software
 "name":"Test",							Name of the switch 
 "descr":"Switch for testing",			Description of the switch
 "model":1								Model of the Switch board

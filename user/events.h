@@ -14,7 +14,8 @@ enum eventtask{
 	EventDisconnect,
 	EventProcessMessage,
 	EventMessageProcessed,
-	EventStartUpgrade
+	EventStartUpgrade,
+	EventRestart
 };
 
 

@@ -29,6 +29,7 @@
 #define LOG_PUT_ERROR			50
 #define LOG_VERB_ERROR			60
 #define LOG_UPGRADE				70
+#define LOG_RESTART				80
 
 void xLogInit();
 void xLogSetLevel();

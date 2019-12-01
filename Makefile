@@ -11,7 +11,7 @@ APP		= 2
 #SPI_MODE	= QIO			
 #SPI_MODE	= DOUT
 #SPI_SIZE_MAP	= 2
-ESPPORT		= COM3
+ESPPORT		= COM4
 #ESPBAUD		= 256000
 
 # Basic project settings

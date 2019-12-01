@@ -56,10 +56,12 @@
 //***				- Include auto-off time in settings
 //***				- Initial auto-off after 43200 seconds (12 hours)
 //***				- Auto-off value of 0 disables function
-//***				- Display on time in status
-//***Version 2.4 27-11-2019
+//***				- Display on-time in status
+//***Version 2.4 01-12-2019
 //***			- Support for different Switch boards added
-//***				- Setting SwitchModel added
+//***				- Setting SwitchModel added (see MessageFormat.txt for supported models)
+//***				- switch.c and button.c altered to handle this
+//***			- URI /Switch/Restart added to force a restart (necessary after changing some of the settings)
 //***************************************************************
 #define VERSION			"v2.4.0"
 #define AUTO_OFF		43200
