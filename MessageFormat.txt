@@ -3,7 +3,7 @@ Supported Switch Models:
 	Button port GPIO0, action is low
 2	Switch port GPIO0, on is low
 	Button port GPIO2, action is low
-
+ 
 Supported services:
 
 GET 

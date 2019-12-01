@@ -9,13 +9,19 @@ If you like this/hate this/have any comments/have any questions/just want to cha
 
 For descriptions of the supported services and messages see file MessageFormat.txt
 
+Version 2.4 01-12-2019
+- Support for different Switch boards added
+	- Setting SwitchModel added (see MessageFormat.txt for supported models)
+	- switch.c and button.c altered to handle this
+- URI /Switch/Restart added to force a restart (necessary after changing some of the settings)
+
 Version 2.3.2 27-07-2019
 - Complete auto-off function  
 	- Make log entry with auto-off  
 	- Include auto-off time in settings  
 	- Initial auto-off after 43200 seconds (12 hours)  
 	- Auto-off value of 0 disables function  
-	- Display on time in status  
+	- Display on-time in status  
 
 Version 2.3.1 14-07-2019:
 - Added basic auto-off function that switches off after 12 hours
